@@ -35,13 +35,13 @@ npm run build          # output in dist/
 
 The résumé link appears on its own once `public/resume.pdf` exists.
 
-## Deploy on Vercel
+## Deploy on GitHub Pages
 
-1. Push this folder to a new GitHub repository.
-2. Import the repository in Vercel. It detects Astro. Build command `npm run build`, output directory `dist`.
-3. Add your domain in the project's domain settings.
+This repo is a GitHub *user site* (`avnish1505.github.io`), so it deploys at the root with no `base` path.
 
-Canonical URLs, the sitemap and link previews use the production domain automatically through `VERCEL_PROJECT_PRODUCTION_URL`. Set `SITE_URL` to override it.
+1. In the repo's Settings → Pages, set Source to **GitHub Actions**. `.github/workflows/deploy.yml` builds and publishes `dist/` on every push to `main`.
+2. Canonical URLs, the sitemap and link previews all come from the `site` value in `astro.config.mjs` — update that one line if the domain changes.
+3. Adding a custom domain: add a `public/CNAME` file with the domain, set the new `site` value in `astro.config.mjs` to match, and configure the domain in Settings → Pages.
 
 ## Before it goes live
 

@@ -1,1 +1,14 @@
-{ "extends": "astro/tsconfigs/strict", "include": [".astro/types.d.ts", "**/*"], "exclude": ["dist"] }
+{
+	"compilerOptions": {
+		"strict": true,
+		"allowJs": true,
+		"skipLibCheck": true,
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"target": "ESNext",
+		"jsx": "preserve",
+		"jsxImportSource": "astro"
+	},
+	"include": [".astro/types.d.ts", "**/*"],
+	"exclude": ["dist"]
+}

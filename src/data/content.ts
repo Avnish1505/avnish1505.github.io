@@ -11,7 +11,7 @@ export const papers = {
     title: 'Emergence of Artificial Intelligence in Law and Legal Technology',
     authors: 'Arya Pratap Singh, Avnish Singh',
     venue: 'ADG 2026 International Conference.',
-    pdf: 'https://avnish1505.github.io/research-paper.pdf',
+    pdf: '/research-paper.pdf',
   },
 } as const;
 
