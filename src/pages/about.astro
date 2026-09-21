@@ -1,0 +1,69 @@
+---
+import Base from '../layouts/Base.astro';
+import ContactLinks from '../components/ContactLinks.astro';
+import { site } from '../site.config';
+import { earlier } from '../data/content';
+---
+<Base title="About" description="Avnish Singh, final-year computer science student at Babu Banarasi Das University, Lucknow. Looking for AI/ML engineering internships and entry-level roles.">
+  <h1 class="page-title">About</h1>
+
+  <p>
+    I'm Avnish Singh, a final-year B.Tech student in Computer Science and Engineering at {site.school} in Lucknow,
+    graduating in {site.graduation}.
+  </p>
+  <p>
+    My projects keep coming back to one habit: decide the metric and the bar before running the experiment, and keep the
+    result when it goes against me. In OmitBench that meant publishing that my own detector lost, and retiring two detectors
+    that missed a bar I had set in advance.
+  </p>
+  <p>
+    I build with AI coding assistants, mainly Claude and Copilot, and I review what they write for architecture as well as
+    syntax. Every session ends with the test output pasted back, because "done" from an assistant is a claim, not a result.
+  </p>
+
+  <h2>What I'm looking for</h2>
+  <p>
+    ML engineering work where models have to survive contact with production. Internships and entry-level roles, in India,
+    remote, Japan, Europe, the US or Canada. I'm eligible to work in India and open to relocation.
+  </p>
+  <ContactLinks />
+
+  <h2>Education</h2>
+  <p>B.Tech, Computer Science and Engineering, {site.school}, Lucknow. 2023 to 2027, CGPA 7.55 out of 10.</p>
+
+  <h2>Outside work</h2>
+  <p>
+    I speak Hindi and English, and I've just started learning Japanese, so I'm a beginner, below JLPT N5.
+    I write poetry under the pen name Anand Avnish, and I play chess. I won my college tournament in 2025.
+  </p>
+
+  <h2>Earlier projects</h2>
+  <ul class="earlier">
+    {earlier.map((p) => (
+      <li><a href={p.href}>{p.title}</a>. {p.summary}</li>
+    ))}
+  </ul>
+</Base>
+
+<style>
+  .page-title {
+    font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
+    line-height: 1.06;
+    letter-spacing: -0.024em;
+    font-weight: 660;
+    margin-bottom: 2rem;
+  }
+  h2 {
+    margin: 2.75rem 0 0.8rem;
+  }
+  .earlier {
+    padding-left: 1.2rem;
+    max-width: var(--measure);
+  }
+  .earlier li {
+    margin-bottom: 0.5rem;
+  }
+  .earlier li::marker {
+    color: var(--muted);
+  }
+</style>

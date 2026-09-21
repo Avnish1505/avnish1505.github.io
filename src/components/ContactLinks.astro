@@ -1,0 +1,14 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import { site } from '../site.config';
+
+// The résumé link only appears once public/resume.pdf exists.
+const hasResume = fs.existsSync(path.join(process.cwd(), 'public', 'resume.pdf'));
+---
+<ul class="links">
+  <li><a href={`mailto:${site.email}`}>Email</a></li>
+  <li><a href={site.github}>GitHub</a></li>
+  <li><a href={site.linkedin}>LinkedIn</a></li>
+  {hasResume && <li><a href="/resume.pdf">Résumé</a></li>}
+</ul>

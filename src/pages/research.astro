@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+import Claim from '../components/Claim.astro';
+import { papers } from '../data/content';
+---
+<Base title="Research" description="A preprint on detecting silent implementation integrity failures in AI-generated code, and a co-authored conference paper on AI in law.">
+  <h1 class="page-title">Research</h1>
+
+  <article class="paper">
+    <h2>{papers.iia.title}</h2>
+    <p class="meta">{papers.iia.authors}. {papers.iia.venue}</p>
+    <p>
+      A deterministic static analyzer for safety checks that AI-generated Python defines but never runs.
+      On a benchmark of <Claim id="iia.scenarios" /> scenarios it reaches MCC <Claim id="iia.mcc" /> against a string-presence
+      baseline whose precision and MCC are undefined, because it predicts one class for everything.
+      All five errors are reported, with what each one shows about the limits of intra-file analysis.
+    </p>
+    <ul class="links">
+      <li><a href={papers.iia.pdf}>PDF</a></li>
+      <li><a href={papers.iia.page}>Project page</a></li>
+      <li><a href={papers.iia.code}>Code</a></li>
+      <li><a href="/work/integrity-analyzer/">Case study</a></li>
+    </ul>
+  </article>
+
+  <article class="paper">
+    <h2>{papers.law.title}</h2>
+    <p class="meta">{papers.law.authors}. {papers.law.venue}</p>
+    <p>
+      How AI is used in legal research, contract review, e-discovery and online dispute resolution, and how the
+      European Union, the United States and India are responding to it, including algorithmic bias and predictive justice.
+      I wrote the comparative analysis and the technical sections.
+    </p>
+    <ul class="links">
+      <li><a href={papers.law.pdf}>PDF</a></li>
+    </ul>
+  </article>
+</Base>
+
+<style>
+  .page-title {
+    font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
+    line-height: 1.06;
+    letter-spacing: -0.024em;
+    font-weight: 660;
+    margin-bottom: 2.5rem;
+  }
+  .paper {
+    margin-bottom: 3rem;
+  }
+  .paper h2 {
+    font-size: 1.28rem;
+    line-height: 1.32;
+    max-width: 40ch;
+  }
+  .meta {
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin: 0.5rem 0 0.9rem;
+  }
+</style>

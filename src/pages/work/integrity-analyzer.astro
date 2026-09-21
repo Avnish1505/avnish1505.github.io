@@ -1,0 +1,105 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import Claim from '../../components/Claim.astro';
+import ConfusionGrid from '../../components/ConfusionGrid.astro';
+import { papers } from '../../data/content';
+import type { ClaimId } from '../../data/claims';
+
+const sources: ClaimId[] = [
+  'iia.scenarios', 'iia.tp', 'iia.fp', 'iia.fn', 'iia.tn', 'iia.mcc', 'iia.precision', 'iia.recall',
+  'ae.model', 'ae.roles', 'ae.report.scenarios', 'ae.report.fallback', 'ae.tests',
+];
+---
+<CaseStudy
+  title="Implementation Integrity Analyzer"
+  dek="Static analysis for safety checks that AI-generated code defines but never runs. Part of AegisOps AI."
+  description="A deterministic static analyzer for silent implementation integrity failures in AI-generated Python: safety checks that are written but never called."
+  year="2026"
+  stack={['Python', 'AST analysis', 'FastAPI', 'pytest', 'GitHub Actions']}
+  links={[
+    { label: 'Preprint', href: papers.iia.pdf },
+    { label: 'Project page', href: papers.iia.page },
+    { label: 'Code', href: papers.iia.code },
+    { label: 'AegisOps write-up', href: 'https://avnish1505.github.io/aegisops-ai-blog/' },
+  ]}
+  sources={sources}
+  ogImage="/og/integrity-analyzer.png"
+>
+  <h2>The failure</h2>
+  <p>
+    An AI coding agent reports that it has wired a safety check into an execution path. The code parses, imports and passes its
+    tests, and the check never runs. The function exists, nothing calls it, and no error is raised.
+  </p>
+  <p>
+    I ran into this while building AegisOps AI with a coding assistant, which twice scaffolded the safety gate without wiring it
+    in. Reviewing the diffs for architecture, not just syntax, is what caught it. This analyzer is an attempt to make that review
+    mechanical.
+  </p>
+
+  <h2>What it checks</h2>
+  <p>It looks for three signatures in Python source.</p>
+  <ul>
+    <li>Functions whose bodies contain only scaffold markers.</li>
+    <li>Stated intent that matches no identifier in the implementation.</li>
+    <li>Safety-critical functions that are defined but never called from the operations they are meant to guard.</li>
+  </ul>
+  <p>
+    It is deterministic, and it does not discover which functions are safety-critical. Someone has to say so, and a wrong
+    configuration produces confident wrong answers.
+  </p>
+
+  <h2>Results</h2>
+  <p>
+    The benchmark has <Claim id="iia.scenarios" /> scenarios: five files with one seeded integrity failure each, five correctly
+    wired files that must not be flagged, and five hard cases built to sit outside what intra-file analysis can see.
+  </p>
+  <ConfusionGrid />
+  <p>
+    MCC <Claim id="iia.mcc" />, precision <Claim id="iia.precision" />, recall <Claim id="iia.recall" />. MCC is the headline
+    because the corpus is small and imbalanced.
+  </p>
+  <p>
+    The comparison is a string-presence check that asks whether the gate's name appears in the file. It predicts the same class
+    for everything, because a function's name always appears in its own definition. A text search cannot tell a gate that exists
+    from a gate that runs, so its precision and MCC are undefined.
+  </p>
+
+  <h2>The errors</h2>
+  <p>
+    The analyzer gets all ten straightforward cases right. Its <Claim id="iia.fp" /> false positives and <Claim id="iia.fn" /> false negative all come from the hard cases, and each one matches a limitation already documented in the
+    code: no alias resolution, no calls through helper functions, no awareness of abstract methods, and no ordering analysis.
+  </p>
+  <p>
+    The false negative matters most. The gate is called, but in a branch that does not run before the guarded operation. The
+    analyzer asks whether the gate's name is in the operation's call set. It is, so the file is reported clean. Being in a call
+    set is not the same as running before the action, and no threshold fixes that. It is the one error in the direction that
+    ships an unguarded operation.
+  </p>
+  <p>
+    Nothing was excluded, relabelled or reweighted after seeing the results. The benchmark is small and I wrote it myself, so
+    these numbers describe one detector on one corpus. They say nothing about how common the failure is in the wild.
+  </p>
+
+  <h2>Where it lives: AegisOps AI</h2>
+  <p>
+    AegisOps AI is a research platform for human-supervised crisis decision support, run on synthetic, seeded scenarios. It is
+    not a dispatch system, and it never dispatches anything.
+  </p>
+  <p>
+    A rule-based allocator is the control condition. An LLM engine, <Claim id="ae.model" /> through NVIDIA NIM at temperature 0,
+    proposes assignments from the scenario plus evidence retrieved from a small local knowledge base. A deterministic policy layer
+    then revalidates every assignment against the scenario. Any validation failure returns a blocked result, and every result
+    requires human approval.
+  </p>
+  <p>
+    Two things are not done, and they belong on this page. The four agent roles are defined as contracts for a later multi-agent
+    phase, and they are <Claim id="ae.roles" />. And the committed experiment report over <Claim id="ae.report.scenarios" /> scenarios was generated without an API key, so the LLM engine took its <Claim id="ae.report.fallback" />. Live LLM results
+    are not reported yet. At the linked commit, <Claim id="ae.tests" /> tests pass.
+  </p>
+
+  <h2>Reproduce</h2>
+  <pre><code>git clone https://github.com/Avnish1505/aegisops-ai
+cd aegisops-ai
+pip install -r requirements-dev.txt
+pytest</code></pre>
+</CaseStudy>

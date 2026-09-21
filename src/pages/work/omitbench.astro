@@ -1,0 +1,122 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import Claim from '../../components/Claim.astro';
+import MccChart from '../../components/MccChart.astro';
+import type { ClaimId } from '../../data/claims';
+
+const sources: ClaimId[] = [
+  'ob.libraries', 'ob.instances', 'ob.requirements', 'ob.baseRate', 'ob.f1.flagAll', 'ob.mcc.flagAll',
+  'ob.mcc.b3', 'ob.ci.b3', 'ob.mcc.b4', 'ob.ci.b4', 'ob.mcc.p1', 'ob.ci.p1', 'ob.mcc.b5', 'ob.ci.b5',
+  'ob.delta.b3', 'ob.delta.b4', 'ob.delta.b5', 'ob.deltaCi.b5', 'ob.recall.absent.p1', 'ob.recall.other.p1',
+  'ob.extraction.cost', 'ob.extraction.mcc', 'ob.real.trajectories', 'ob.real.omitted', 'ob.real.fpr',
+  'ob.precision.p1', 'ob.fpr.p1', 'ob.fpr.b5', 'ob.gate.precision', 'ob.gate.bar', 'ob.gate.fired', 'ob.gate.p95',
+  'ob.tests', 'ob.unwired.n',
+];
+---
+<CaseStudy
+  title="OmitBench"
+  dek="A benchmark for silent omissions in coding-agent patches, and the measurements that didn't flatter it."
+  description="A benchmark and deterministic detector for silent omissions in coding-agent patches. The detector lost to a mid-tier LLM judge, and shipped anyway as a precision-first CI gate."
+  year="2026"
+  stack={['Python', 'AST analysis', 'mutation testing', 'LLM-as-judge baselines', 'cluster bootstrap', 'GitHub Actions']}
+  links={[
+    { label: 'Code', href: 'https://github.com/Avnish1505/Omitbench' },
+    { label: 'Write-up', href: 'https://avnish1505.github.io/omitbench-engineering-blog/' },
+  ]}
+  sources={sources}
+  ogImage="/og/omitbench.png"
+>
+  <h2>The question</h2>
+  <p>
+    When a coding agent reports that it is done, part of what it planned can be missing from the diff. The patch applies,
+    nothing errors, and the gap shows up later. I wanted to know whether a detector built only on program analysis could find
+    those omissions better than an LLM judge, without ever seeing the reference solution.
+  </p>
+
+  <h2>How the benchmark is built</h2>
+  <p>
+    I took real merged commits from <Claim id="ob.libraries" /> Python libraries: attrs, click, flask, httpx, itsdangerous, jinja,
+    requests and werkzeug. For each commit I applied the full patch, then broke one newly defined symbol in one of three ways.
+  </p>
+  <ul>
+    <li><code>ABSENT</code>: the definition is deleted and its call sites stay.</li>
+    <li><code>UNWIRED</code>: the definition stays and every call to it is neutralised, so it reads as finished and never runs.</li>
+    <li><code>STUB</code>: the definition and its calls stay, and the body is hollowed out.</li>
+  </ul>
+  <p>
+    That gives <Claim id="ob.instances" /> instances and <Claim id="ob.requirements" /> requirements scored per detector, at a
+    base rate of <Claim id="ob.baseRate" />. The mutation defines the label, so ground truth costs nothing. No detector ever
+    receives the gold patch: a leakage test plants a canary in it, and CI fails if the canary reaches a detector.
+  </p>
+  <p>
+    I committed to MCC as the headline metric before running anything. At this base rate F1 rewards a detector that flags
+    everything, which scores F1 <Claim id="ob.f1.flagAll" /> and MCC <Claim id="ob.mcc.flagAll" />.
+  </p>
+
+  <h2>Results</h2>
+  <MccChart />
+  <p>Every detector sees the same instances, so the comparison that matters is the paired difference:</p>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th scope="col">My detector against</th><th scope="col">MCC difference</th><th scope="col">95% interval</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Line grep, no AST</td><td><Claim id="ob.delta.b3" /></td><td>excludes zero, I win</td></tr>
+        <tr><td>Reasoning LLM judge</td><td><Claim id="ob.delta.b4" /></td><td>excludes zero, I win</td></tr>
+        <tr><td>Mid-tier LLM judge</td><td><Claim id="ob.delta.b5" /></td><td><Claim id="ob.deltaCi.b5" />, I lose</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    The loss has a clear cause. My detector asks one question: is the symbol defined? That gives
+    recall <Claim id="ob.recall.absent.p1" /> on <code>ABSENT</code> omissions and <Claim id="ob.recall.other.p1" /> on <code>UNWIRED</code> and <code>STUB</code>, by construction. The mid-tier judge recovers part of both, and on this corpus's
+    mix that trade wins. The thesis I started with, that LLM judges are structurally weak at spotting omissions, is not
+    supported for that judge.
+  </p>
+
+  <h2>What went against me</h2>
+  <p>
+    Two more elaborate detectors added reachability analysis. They flagged most correct public API symbols as missing and lost
+    to plain grep. I allowed myself one fix, decided in advance and measured once. It narrowed the gap but did not clear the bar
+    I had set, so both detectors were retired. Their code is still in the repository, marked as retired.
+  </p>
+  <p>
+    Every requirement in the main table comes from the gold patch, which makes those numbers an upper bound. To measure the gap,
+    I had an LLM read only the commit message or issue text and guess the requirements. That cost <Claim id="ob.extraction.cost" /> for all <Claim id="ob.instances" /> instances, and my detector's MCC fell from <Claim id="ob.mcc.p1" /> to <Claim id="ob.extraction.mcc" />, worse than flagging nothing. Extraction, not detection, is the
+    hard part.
+  </p>
+  <p>
+    I also collected <Claim id="ob.real.trajectories" /> real agent trajectories. Every agent succeeded, with <Claim id="ob.real.omitted" /> requirements omitted, so recall could not be measured at all. What did carry over was the false
+    positive rate: <Claim id="ob.real.fpr" /> on real code against <Claim id="ob.fpr.p1" /> on the synthetic corpus.
+  </p>
+
+  <h2>Shipping it as a gate</h2>
+  <p>
+    The GitHub Action reads an explicit checklist of symbols from the pull request and comments when one is missing from the
+    diff. It uses my detector only, with no LLM and no network call. Requirements come from the checklist and are never guessed
+    from prose, because the extraction experiment showed what guessing does.
+  </p>
+  <p>
+    I shipped my detector, not the judge that beat it. A gate that cries wolf gets switched off, so precision was the ship
+    criterion. Mine has precision <Claim id="ob.precision.p1" /> at a false positive rate of <Claim id="ob.fpr.p1" />, against <Claim id="ob.fpr.b5" /> for the mid-tier judge. At the last check its precision on the frozen corpus was <Claim id="ob.gate.precision" />, above the <Claim id="ob.gate.bar" /> bar.
+  </p>
+  <p>
+    On a demo pull request with a deliberately missing symbol, the workflow commented in <Claim id="ob.gate.fired" />. Detection
+    takes <Claim id="ob.gate.p95" /> per instance at p95, and <Claim id="ob.tests" /> tests pass. That is one demo on my own
+    repository. It shows the mechanism works, not that any team gets value from it.
+  </p>
+
+  <h2>Limits</h2>
+  <ul>
+    <li>The omissions are injected, not observed. Until there are real traces that contain real omissions, none of this generalises to deployed agents.</li>
+    <li>Python only, and only functions and classes. No config keys, dependencies or behaviour-only requirements.</li>
+    <li><code>UNWIRED</code> has <Claim id="ob.unwired.n" /> instances. It needs about a hundred before that column means more than noise.</li>
+  </ul>
+
+  <h2>Reproduce</h2>
+  <pre><code>git clone https://github.com/Avnish1505/Omitbench
+cd Omitbench
+make test        # unit tests and leakage guards
+make reproduce   # regenerates every number from committed shards, no network or API key</code></pre>
+</CaseStudy>

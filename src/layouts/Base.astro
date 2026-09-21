@@ -1,0 +1,82 @@
+---
+import '@fontsource-variable/literata/wght.css';
+import '@fontsource-variable/literata/wght-italic.css';
+import '@fontsource-variable/schibsted-grotesk/wght.css';
+import '../styles/global.css';
+import { site } from '../site.config';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  jsonLd?: Record<string, unknown>;
+}
+
+const { title, description = site.description, ogImage = '/og/default.png', jsonLd } = Astro.props;
+const pageTitle = title ? `${title} | ${site.name}` : `${site.name}: ${site.headline}`;
+const origin = Astro.site ?? new URL('http://localhost:4321');
+const canonical = new URL(Astro.url.pathname, origin).href;
+const image = new URL(ogImage, origin).href;
+const path = Astro.url.pathname;
+const nav = [
+  { href: '/#work', label: 'Work', match: '/work' },
+  { href: '/research/', label: 'Research', match: '/research' },
+  { href: '/writing/', label: 'Writing', match: '/writing' },
+  { href: '/about/', label: 'About', match: '/about' },
+];
+const updated = new Date(site.updated + 'T00:00:00Z').toLocaleDateString('en-GB', {
+  day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+});
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="theme-color" content="#f6f3eb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1f1e1b" media="(prefers-color-scheme: dark)" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title ? pageTitle : site.ogTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title ? `${title}, by ${site.name}` : site.headline} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title ? pageTitle : site.ogTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="site-name" href="/">{site.name}</a>
+        <nav class="site-nav" aria-label="Main">
+          {nav.map((item) => (
+            <a href={item.href} aria-current={path.startsWith(item.match) ? 'page' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="wrap">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>Every highlighted number links to the file, test, or commit it came from.</p>
+        <p>Last updated {updated}. <a href={`mailto:${site.email}`}>{site.email}</a></p>
+      </div>
+    </footer>
+  </body>
+</html>

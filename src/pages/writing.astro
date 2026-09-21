@@ -1,0 +1,51 @@
+---
+import Base from '../layouts/Base.astro';
+import { posts } from '../data/content';
+---
+<Base title="Writing" description="Engineering write-ups on OmitBench and AegisOps AI, including the results that went against me.">
+  <h1 class="page-title">Writing</h1>
+  <ul class="posts">
+    {posts.map((post) => (
+      <li>
+        <h2><a href={post.href}>{post.title}</a></h2>
+        <p class="date">{post.date}</p>
+        <p>{post.summary}</p>
+      </li>
+    ))}
+  </ul>
+</Base>
+
+<style>
+  .page-title {
+    font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
+    line-height: 1.06;
+    letter-spacing: -0.024em;
+    font-weight: 660;
+    margin-bottom: 2.5rem;
+  }
+  .posts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 2.25rem;
+  }
+  h2 {
+    font-size: 1.28rem;
+    line-height: 1.32;
+    max-width: 40ch;
+  }
+  h2 a {
+    text-decoration: none;
+  }
+  h2 a:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+  .date {
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin: 0.35rem 0 0.6rem;
+  }
+</style>

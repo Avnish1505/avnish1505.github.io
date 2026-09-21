@@ -1,0 +1,95 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import Claim from '../../components/Claim.astro';
+import { commitUrl, evidence, type ClaimId } from '../../data/claims';
+
+const sources: ClaimId[] = [
+  'cf.split', 'cf.val.n', 'cf.test.n', 'cf.valMacroF1', 'cf.val.macroF1Recomputed', 'cf.test.macroF1',
+  'cf.val.melRecall', 'cf.test.melRecall', 'cf.val.melPrecision', 'cf.test.melPrecision',
+  'cf.test.melFp', 'cf.test.melFpNv', 'cf.latency.explain', 'cf.latency.fast',
+];
+const fix = commitUrl(evidence.cfCollapseFix.repo, evidence.cfCollapseFix.sha);
+const loud = commitUrl(evidence.cfSilentLoad.repo, evidence.cfSilentLoad.sha);
+const temperature = commitUrl(evidence.cfTemperature.repo, evidence.cfTemperature.sha);
+---
+<CaseStudy
+  title="Cancer Fusion AI"
+  dek="A skin lesion classifier that combines dermoscopy images with patient metadata, evaluated as a triage filter."
+  description="A multimodal skin lesion classifier on HAM10000, with held-out test metrics, a silent checkpoint failure and its fix, and Grad-CAM latency work."
+  year="2026"
+  stack={['PyTorch', 'ResNet50', 'Grad-CAM', 'FastAPI', 'React']}
+  links={[{ label: 'Code', href: 'https://github.com/Avnish1505/cancer-fusion-ai' }]}
+  sources={sources}
+  ogImage="/og/cancer-fusion.png"
+>
+  <h2>What it does</h2>
+  <p>
+    The model takes a dermoscopy image plus three pieces of patient metadata: age, sex and lesion location. ResNet50 image
+    features and the metadata go through a small MLP head that predicts one of seven lesion types. It is trained on HAM10000,
+    about ten thousand images.
+  </p>
+  <p>
+    The split is by <Claim id="cf.split" />, not by image. Some lesions have several photos, and an image-level split would put
+    the same lesion on both sides, which inflates validation scores without making the model any better.
+  </p>
+
+  <h2>Results</h2>
+  <p>
+    The repository reports validation macro-F1, and the validation set is the one used to choose the checkpoint, so that number
+    flatters the model a little. I recomputed the metrics on the held-out test set from the logits committed in the repository.
+  </p>
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><td></td><th scope="col">Validation</th><th scope="col">Test</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">Images</th><td><Claim id="cf.val.n" /></td><td><Claim id="cf.test.n" /></td></tr>
+        <tr><th scope="row">Macro-F1</th><td><Claim id="cf.valMacroF1" /></td><td><Claim id="cf.test.macroF1" /></td></tr>
+        <tr><th scope="row">Melanoma recall</th><td><Claim id="cf.val.melRecall" /></td><td><Claim id="cf.test.melRecall" /></td></tr>
+        <tr><th scope="row">Melanoma precision</th><td><Claim id="cf.val.melPrecision" /></td><td><Claim id="cf.test.melPrecision" /></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Recomputing validation macro-F1 from the same logits gives <Claim id="cf.val.macroF1Recomputed" />, matching the value stored
+    in the shipped checkpoint, which is how I know the logits came from that model.
+  </p>
+  <p>
+    I report macro-F1 rather than accuracy because benign nevi are about two thirds of the data, and a model can score well on
+    accuracy while failing the rare classes.
+  </p>
+  <p>
+    Melanoma precision is low. On the test set the model flags <Claim id="cf.test.melFp" /> images as melanoma that are not, and <Claim id="cf.test.melFpNv" /> of those are benign nevi. A missed melanoma costs more than an unnecessary referral, so that
+    trade-off is defensible for a triage filter and not for a diagnosis. The model is not clinically validated and should not
+    be used on patients.
+  </p>
+
+  <h2>The silent failure</h2>
+  <p>
+    For a while the model predicted the same class for every image, and nothing raised an error. The loader used <code>strict=False</code> and was loading a stale image-only checkpoint into the fusion model. Weights that did not match were
+    skipped without a word, and the predictions collapsed.
+  </p>
+  <p>
+    The fix had two parts: <a href={fix}>track the correct fusion checkpoint and drop the stale one</a>, and <a href={loud}>make loading print missing and unexpected key counts instead of failing silently</a>. The same commit removed a
+    leak in how the metadata scaler was fitted.
+  </p>
+
+  <h2>Latency</h2>
+  <p>
+    I profiled inference phase by phase. The backward pass for Grad-CAM dominated each request, so I put explanations behind an
+    opt-in flag. When no explanation is needed, local latency drops from <Claim id="cf.latency.explain" /> to <Claim id="cf.latency.fast" /> per request. These are local measurements on one CPU worker, not production numbers.
+  </p>
+  <p>Predicted probabilities are calibrated with a temperature <a href={temperature}>fitted on the validation set</a>.</p>
+
+  <h2>Limits</h2>
+  <ul>
+    <li>There is no always-on public demo.</li>
+    <li>One dataset from a research collection, so performance on other populations and cameras is unknown.</li>
+    <li>The training and validation accuracy figures in the project README come from a past run and cannot be reproduced from the repository. The README says so.</li>
+  </ul>
+
+  <h2>Reproduce the test numbers</h2>
+  <pre><code>pip install numpy
+python scripts/derive/cancer_fusion_metrics.py   # in this site's repository</code></pre>
+</CaseStudy>

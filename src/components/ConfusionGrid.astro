@@ -1,0 +1,80 @@
+---
+import Claim from './Claim.astro';
+---
+<figure class="cm">
+  <table>
+    <caption class="sr-cap">Analyzer results on 15 scenarios</caption>
+    <thead>
+      <tr><td></td><th scope="col">Flagged</th><th scope="col">Not flagged</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th scope="row">Has a failure</th>
+        <td class="good"><Claim id="iia.tp" /><span>caught</span></td>
+        <td class="bad"><Claim id="iia.fn" /><span>missed</span></td>
+      </tr>
+      <tr>
+        <th scope="row">Correct code</th>
+        <td class="bad"><Claim id="iia.fp" /><span>false alarms</span></td>
+        <td class="good"><Claim id="iia.tn" /><span>left alone</span></td>
+      </tr>
+    </tbody>
+  </table>
+  <figcaption>
+    All five errors are in the five hard cases built to sit outside the analyzer's documented limits.
+  </figcaption>
+</figure>
+
+<style>
+  .cm {
+    margin: 1.5rem 0 1.25rem;
+    font-family: var(--sans);
+  }
+  table {
+    font-size: 0.9rem;
+  }
+  .sr-cap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  th {
+    font-weight: 500;
+    color: var(--muted);
+    text-align: left;
+    padding: 0.3rem 0.9rem 0.3rem 0;
+    font-size: 0.82rem;
+  }
+  thead th {
+    padding-bottom: 0.4rem;
+  }
+  thead td {
+    border: 0;
+  }
+  tbody td {
+    padding: 0.55rem 0.9rem;
+    min-width: 7.5rem;
+    border: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  td :global(.claim) {
+    font-size: 1.35rem;
+    font-weight: 600;
+    margin-right: 0.45rem;
+  }
+  td span:not(:global(.sr)) {
+    color: var(--muted);
+    font-size: 0.82rem;
+  }
+  .bad {
+    background: var(--surface);
+  }
+  figcaption {
+    margin-top: 0.7rem;
+    font-size: 0.84rem;
+    color: var(--muted);
+    max-width: var(--measure);
+  }
+</style>

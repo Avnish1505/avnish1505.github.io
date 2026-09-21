@@ -1,0 +1,15 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Page not found">
+  <h1 class="nf">This page doesn't exist.</h1>
+  <p>The link may be old. The <a href="/">home page</a> lists everything on this site.</p>
+</Base>
+
+<style>
+  .nf {
+    font-size: clamp(1.8rem, 1.3rem + 2.5vw, 2.6rem);
+    line-height: 1.1;
+    margin-bottom: 1rem;
+  }
+</style>

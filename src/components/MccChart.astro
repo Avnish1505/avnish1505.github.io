@@ -1,0 +1,162 @@
+---
+import Claim from './Claim.astro';
+import { claims, type ClaimId } from '../data/claims';
+
+interface Props {
+  compact?: boolean;
+}
+
+// Detectors in the order a reader should meet them: baselines, then the result.
+const rows: { name: string; note: string; mcc: ClaimId; ci: ClaimId; mine?: boolean }[] = [
+  { name: 'Line grep, no AST', note: 'B3 baseline', mcc: 'ob.mcc.b3', ci: 'ob.ci.b3' },
+  { name: 'Reasoning LLM judge', note: 'B4, gpt-oss-120b', mcc: 'ob.mcc.b4', ci: 'ob.ci.b4' },
+  { name: 'My deterministic detector', note: 'P1', mcc: 'ob.mcc.p1', ci: 'ob.ci.p1', mine: true },
+  { name: 'Mid-tier LLM judge', note: 'B5', mcc: 'ob.mcc.b5', ci: 'ob.ci.b5' },
+];
+
+const MAX = 0.8;
+const pct = (x: number) => `${(Math.max(0, Math.min(MAX, x)) / MAX) * 100}%`;
+const parseCi = (s: string) => s.replace(/[[\]]/g, '').split(',').map((v) => Number(v.trim()));
+const ticks = [0, 0.2, 0.4, 0.6, 0.8];
+const { compact = false } = Astro.props;
+---
+<figure class:list={['mcc', { compact }]}>
+  <div class="plot" role="table" aria-label="MCC with 95% confidence intervals, 310 instances">
+    <div class="row head" role="row">
+      <span role="columnheader" class="lbl">Detector</span>
+      <span role="columnheader" class="track axis" aria-hidden="true">
+        {ticks.map((t) => <span class="tick" style={`left:${pct(t)}`}>{t.toFixed(1)}</span>)}
+      </span>
+      <span role="columnheader" class="val">MCC</span>
+    </div>
+    {rows.map((r) => {
+      const [lo, hi] = parseCi(claims[r.ci].value);
+      const m = Number(claims[r.mcc].value);
+      return (
+        <div class:list={['row', { mine: r.mine }]} role="row">
+          <span role="cell" class="lbl">{r.name}<span class="note">{r.note}</span></span>
+          <span role="cell" class="track" aria-label={`95% interval ${claims[r.ci].value}`}>
+            {ticks.map((t) => <span class="grid" style={`left:${pct(t)}`} />)}
+            <span class="ci" style={`left:${pct(lo)};width:calc(${pct(hi)} - ${pct(lo)})`} />
+            <span class="dot" style={`left:${pct(m)}`} />
+          </span>
+          <span role="cell" class="val"><Claim id={r.mcc} /></span>
+        </div>
+      );
+    })}
+  </div>
+  <figcaption>
+    Matthews correlation coefficient on <Claim id="ob.instances" /> instances. Bars are 95% cluster-bootstrap intervals.
+    Flagging everything scores <Claim id="ob.mcc.flagAll" />.
+  </figcaption>
+</figure>
+
+<style>
+  .mcc {
+    margin: 1.5rem 0 1.25rem;
+    font-family: var(--sans);
+  }
+  .plot {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: minmax(8.5rem, 13rem) 1fr 3.5rem;
+    align-items: center;
+    gap: 0.9rem;
+    font-size: 0.9rem;
+    line-height: 1.25;
+  }
+  .head {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .lbl {
+    display: flex;
+    flex-direction: column;
+  }
+  .note {
+    color: var(--muted);
+    font-size: 0.78rem;
+  }
+  .mine .lbl {
+    font-weight: 620;
+  }
+  .track {
+    position: relative;
+    height: 1.9rem;
+  }
+  .axis {
+    height: 1rem;
+  }
+  .tick {
+    position: absolute;
+    transform: translateX(-50%);
+    font-variant-numeric: tabular-nums;
+  }
+  .grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+  }
+  .ci {
+    position: absolute;
+    top: 50%;
+    height: 3px;
+    transform: translateY(-50%);
+    background: var(--muted);
+    border-radius: 2px;
+  }
+  .dot {
+    position: absolute;
+    top: 50%;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--paper);
+    border: 2px solid var(--ink);
+  }
+  .mine .ci {
+    background: var(--mark);
+    height: 5px;
+  }
+  .mine .dot {
+    background: var(--ink);
+  }
+  .val {
+    text-align: right;
+  }
+  figcaption {
+    margin-top: 0.8rem;
+    font-size: 0.84rem;
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: var(--measure);
+  }
+  @media (max-width: 34rem) {
+    .row {
+      grid-template-columns: 1fr 3.25rem;
+      gap: 0.15rem 0.75rem;
+    }
+    .lbl {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      gap: 0.4rem;
+      align-items: baseline;
+    }
+    .head .lbl,
+    .head .val {
+      display: none;
+    }
+    .head .axis {
+      grid-column: 1;
+    }
+    .row:not(.head) {
+      margin-bottom: 0.4rem;
+    }
+  }
+</style>
