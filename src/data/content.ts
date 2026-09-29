@@ -2,7 +2,7 @@ export const papers = {
   iia: {
     title: 'Detecting Silent Implementation Integrity Failures in AI-Generated Code: A Static Analysis Approach',
     authors: 'Avnish Singh',
-    venue: 'Preprint, 2026. arXiv submission pending.',
+    venue: 'Preprint, 2026. Submitted to arXiv (cs.SE), awaiting announcement.',
     pdf: 'https://avnish1505.github.io/iia-preprint/IIA_preprint.pdf',
     page: 'https://avnish1505.github.io/iia-preprint/',
     code: 'https://github.com/Avnish1505/aegisops-ai/tree/main/aegisops/integrity_analyzer',

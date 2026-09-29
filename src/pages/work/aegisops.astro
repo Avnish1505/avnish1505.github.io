@@ -1,0 +1,139 @@
+---
+import CaseStudy from '../../layouts/CaseStudy.astro';
+import Claim from '../../components/Claim.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import FaultStrip from '../../components/FaultStrip.astro';
+import Pipeline from '../../components/Pipeline.astro';
+import type { ClaimId } from '../../data/claims';
+
+const sources: ClaimId[] = [
+  'ae.verifier.checks', 'ae.fi.classes', 'ae.fi.faults', 'ae.fi.falseBlocks', 'ae.unmetPenalty',
+];
+const toc = [
+  { id: 'what', label: 'What it is' },
+  { id: 'why', label: 'Why the model stopped allocating' },
+  { id: 'pipeline', label: 'Who decides at each step' },
+  { id: 'objective', label: 'The objective' },
+  { id: 'verifier', label: 'Checking the checker' },
+  { id: 'audit', label: 'The audit chain' },
+  { id: 'not-done', label: 'What is not done' },
+  { id: 'reproduce', label: 'Reproduce' },
+];
+---
+<CaseStudy
+  title="AegisOps"
+  dek="Flood reports in, solver-backed response plans out. A person approves each one, every number is re-checked, and every decision can be replayed."
+  description="A research platform for crisis-response planning: a language model reads field reports, a CP-SAT solver allocates units on road travel times, pure-function checks gate every plan, and a person approves."
+  year="2026"
+  stack={['Python', 'OR-Tools CP-SAT', 'OSRM', 'OpenStreetMap', 'FastAPI', 'PostGIS', 'React', 'Playwright', 'OpenTelemetry']}
+  links={[
+    { label: 'Code', href: 'https://github.com/Avnish1505/aegisops-ai' },
+    { label: 'Write-up', href: 'https://avnish1505.github.io/aegisops-ai-blog/' },
+  ]}
+  sources={sources}
+  toc={toc}
+  ogImage="/og/aegisops.png"
+>
+  <h2 id="what">What it is</h2>
+  <p>
+    AegisOps is a research platform for planning a response to a flood. It runs a fictional exercise set on real Lucknow places:
+    hospitals, police and fire stations and roads from OpenStreetMap. Field reports come in English, Hindi or Hinglish. The system
+    proposes which units go where, shows its working, and waits for a person.
+  </p>
+  <p>
+    It never dispatches anything. Every plan needs human approval, a blocked plan cannot be approved, whoever proposed a plan cannot
+    approve it, and model output reaches an operator only after deterministic checks. It has no connection to any emergency service.
+  </p>
+
+  <h2 id="why">Why the model stopped allocating</h2>
+  <p>
+    The first version asked a language model for the whole plan: which unit goes where, and how long it takes to get there.
+    Nothing guaranteed that the units existed, were free, or were used once, that the travel times were real, or that the plan
+    was any good. The safety gate I wrote around it took the model's own status at face value, so a wrong plan could still look
+    ready to approve.
+  </p>
+  <p>
+    Allocation is a small, well-posed optimisation problem, and exact solvers are good at those. So a CP-SAT solver now makes every
+    plan, and the model does the two jobs a solver cannot: reading messy reports and drafting prose. The old model engine is kept as
+    an experiment arm, and its output goes through the same checks as the solver's.
+  </p>
+
+  <h2 id="pipeline">Who decides at each step</h2>
+  <p>Pick a step. The colour says who is in charge of it.</p>
+  <Pipeline />
+
+  <h2 id="objective">The objective</h2>
+  <p>
+    The solver and the verifier share one written-down definition of a good plan, so a reviewer can argue with it:
+  </p>
+  <math display="block" aria-label="Minimise the sum over incidents i of weight w i times P times unmet demand u i, plus the sum over assigned pairs of unit r and incident i of w i times the road travel time t r i">
+    <mrow>
+      <mo movablelimits="false">min</mo>
+      <mspace width="0.4em"></mspace>
+      <munder><mo>∑</mo><mi>i</mi></munder><msub><mi>w</mi><mi>i</mi></msub><mo>·</mo><mi class="t-pen">P</mi><mo>·</mo><msub><mi>u</mi><mi>i</mi></msub>
+      <mo>+</mo>
+      <munder><mo>∑</mo><mrow><mo>(</mo><mi>r</mi><mo>,</mo><mi>i</mi><mo>)</mo></mrow></munder><msub><mi>w</mi><mi>i</mi></msub><mo>·</mo><msub><mi>t</mi><mrow><mi>r</mi><mi>i</mi></mrow></msub>
+    </mrow>
+  </math>
+  <p>
+    Here <em>w<sub>i</sub></em> is the severity weight of incident <em>i</em>, times any priority an operator adds,
+    <em>u<sub>i</sub></em> is the number of units it needed and did not get, and <em>t<sub>ri</sub></em> is the road travel time from
+    unit <em>r</em>, taken from the OSRM matrix and never from the plan's own claim. The penalty <em>P</em> is <Claim id="ae.unmetPenalty" /> minutes,
+    so covering a requirement is always worth more than any realistic drive and the solver never leaves demand unmet to save time.
+    Hard rules sit outside the objective: a unit goes to at most one incident, only if it is available and of a type that incident needs, and no incident gets more of a type than it asked for.
+  </p>
+
+  <h2 id="verifier">Checking the checker</h2>
+  <p>
+    Every plan, from the solver or the model, goes through <Claim id="ae.verifier.checks" /> checks written as pure functions. To test
+    them, I injected one fault at a time into 50 seeded scenarios, one fault class per run, and asked whether the right check failed.
+  </p>
+  <FaultStrip />
+  <FaultStrip table />
+  <p>
+    Two classes are deliberately non-blocking. A plan worse than the optimum is shown to the operator as a high-severity finding, and
+    instruction-like text in a report is flagged, never obeyed.
+  </p>
+
+  <h2 id="audit">The audit chain</h2>
+  <p>An insert-only table proves nothing if someone can edit rows directly. So every step appends an event to one chain:</p>
+  <math display="block" aria-label="h n equals SHA-256 of h n minus 1 concatenated with the canonical JSON of the event's id, time, actor, type and payload">
+    <mrow>
+      <msub><mi>h</mi><mi>n</mi></msub><mo>=</mo>
+      <mtext>SHA-256</mtext><mo>(</mo><msub><mi>h</mi><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>‖</mo>
+      <mtext>json</mtext><mo>(</mo><mtext>id, time, actor, type, payload</mtext><mo>)</mo><mo>)</mo>
+    </mrow>
+  </math>
+  <p>
+    Editing any event, or a decision or approval row it hashes, breaks the chain, and an endpoint walks it and reports the first broken link.
+    One gap is stated plainly in the console too: deleting the newest event cannot be detected from inside the database. That needs the
+    head hash stored somewhere else.
+  </p>
+
+  <h2 id="not-done">What is not done</h2>
+  <ul>
+    <li><strong>No live-model results.</strong> The report reader, the constraint translator, drafting and model allocation have only run against mocked or oracle models. The evaluation harness is built. No accuracy, latency or cost is claimed.</li>
+    <li><strong>Model against solver is not measured.</strong> The experiment exists and has not been run, for the same reason.</li>
+    <li><strong>Road times are free-flow.</strong> OSRM's car profile knows nothing about traffic, closures or flooding.</li>
+    <li><strong>Fault injection is not an attack.</strong> The faults come from mutators written alongside the verifier, and the scenarios use straight-line travel times, not the road network.</li>
+    <li><strong>The exercise is fictional,</strong> unit counts at facilities are an assumption, and OpenStreetMap's facility coverage is incomplete.</li>
+    <li>There is no real sign-in and the public demo is configured but not deployed.</li>
+  </ul>
+  <p>
+    An earlier report showed the model engine "blocked" on every scenario. It was produced without a model key, so it measured the
+    fallback path. The repository marks it superseded, and so does this page.
+  </p>
+
+  <h2 id="reproduce">Reproduce</h2>
+  <CodeBlock lang="bash" label="terminal" code={`git clone https://github.com/Avnish1505/aegisops-ai
+cd aegisops-ai
+pip install -r requirements-dev.txt
+pytest
+python scripts/fault_report.py --check   # fails if the committed fault report is out of date`} />
+</CaseStudy>
+
+<style>
+  :global(.t-pen) {
+    color: var(--yellow);
+  }
+</style>

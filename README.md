@@ -1,6 +1,15 @@
 # avnish-singh-site
 
-My personal site. Astro, fully static, no client-side JavaScript.
+My personal site. Astro, fully static.
+
+It is designed as a lab notebook: graph paper, a notebook margin, chalk colours and handwritten margin notes,
+in a dark "slate board" and a light "engineering pad" theme. Colour carries meaning everywhere: yellow is a number you
+can check, mint is something that held, rose is something that failed or went against me, sky is links and other
+people's baselines.
+
+A little client-side JavaScript runs the interactive figures (the F1 vs MCC calculator, the mutation explorer, the
+temperature slider, the AegisOps pipeline) and the theme toggle. Every page reads fine without it: figures fall back to
+static content, and formulas are plain MathML.
 
 ## The rule this site enforces
 
@@ -30,7 +39,10 @@ npm run build          # output in dist/
 | Papers, posts, earlier projects | `src/data/content.ts` |
 | Any number | `src/data/claims.ts`, then `npm run check:claims` |
 | Photo | `src/assets/avnish.jpg` (square) |
-| Link preview cards | `python scripts/og.py` (needs Pillow) |
+| Colours, fonts, the grid | `src/styles/global.css` |
+| Interactive figures | `src/components/MccPlayground.astro`, `MutationExplorer.astro`, `TemperatureDemo.astro`, `Pipeline.astro` |
+| Code blocks | `src/components/CodeBlock.astro` (Shiki, coloured by CSS variables) |
+| Link preview cards | `python scripts/og.py` (needs Pillow; numbers in it are copied from claims.ts) |
 | Cancer Fusion test metrics | `python scripts/derive/cancer_fusion_metrics.py` (needs numpy) |
 
 The résumé link appears on its own once `public/resume.pdf` exists.
@@ -45,5 +57,6 @@ This repo is a GitHub *user site* (`avnish1505.github.io`), so it deploys at the
 
 ## Before it goes live
 
-- Replace resume v6 with a version whose numbers match this site, then add it as `public/resume.pdf`.
+- `public/resume.pdf` still describes the old AegisOps (an LLM allocating units), calls Cancer Fusion "deployed", says
+  "132 tests" and "arXiv submission pending". Replace it with a version that matches this site.
 - Keep the old URLs alive and redirect them here instead of deleting them.

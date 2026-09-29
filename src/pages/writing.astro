@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { posts } from '../data/content';
 ---
 <Base title="Writing" description="Engineering write-ups on OmitBench and AegisOps AI, including the results that went against me.">
+  <p class="page-note hand">Long write-ups, results that went against me included.</p>
   <h1 class="page-title">Writing</h1>
   <ul class="posts">
     {posts.map((post) => (
@@ -16,11 +17,19 @@ import { posts } from '../data/content';
 </Base>
 
 <style>
+  .page-note {
+    font-size: 1.6rem;
+    color: var(--yellow);
+    margin: 0 0 0.3rem;
+    transform: rotate(-2deg);
+    transform-origin: left;
+    display: inline-block;
+  }
   .page-title {
     font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
     line-height: 1.06;
     letter-spacing: -0.024em;
-    font-weight: 660;
+    font-weight: 750;
     margin-bottom: 2.5rem;
   }
   .posts {
@@ -30,22 +39,27 @@ import { posts } from '../data/content';
     display: grid;
     gap: 2.25rem;
   }
+  .posts li {
+    padding-left: 1rem;
+    border-left: 3px solid var(--yellow);
+  }
   h2 {
     font-size: 1.28rem;
     line-height: 1.32;
     max-width: 40ch;
   }
   h2 a {
-    text-decoration: none;
+    color: var(--text);
+    text-decoration-color: var(--line-strong);
   }
   h2 a:hover {
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
+    text-decoration-color: var(--yellow);
   }
   .date {
-    font-family: var(--sans);
-    font-size: 0.9rem;
-    color: var(--muted);
-    margin: 0.35rem 0 0.6rem;
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--text-faint);
+    margin: 0.35rem 0 0.4rem;
   }
 </style>

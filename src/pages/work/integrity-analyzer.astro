@@ -2,41 +2,55 @@
 import CaseStudy from '../../layouts/CaseStudy.astro';
 import Claim from '../../components/Claim.astro';
 import ConfusionGrid from '../../components/ConfusionGrid.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
 import { papers } from '../../data/content';
 import type { ClaimId } from '../../data/claims';
 
 const sources: ClaimId[] = [
   'iia.scenarios', 'iia.tp', 'iia.fp', 'iia.fn', 'iia.tn', 'iia.mcc', 'iia.precision', 'iia.recall',
-  'ae.model', 'ae.roles', 'ae.report.scenarios', 'ae.report.fallback', 'ae.tests',
+  'iia.base.tp', 'iia.base.fp', 'iia.base.fn', 'iia.base.tn', 'ae.tests',
 ];
+const toc = [
+  { id: 'failure', label: 'The failure' },
+  { id: 'checks', label: 'What it checks' },
+  { id: 'results', label: 'Results' },
+  { id: 'errors', label: 'The errors' },
+  { id: 'origin', label: 'Where it came from' },
+  { id: 'reproduce', label: 'Reproduce' },
+];
+
+const late = `def dispatch(plan):
+    execute(plan)                  # the guarded operation runs first
+    if plan.flagged:
+        validate_plan(plan)        # the gate is in the call set, too late`;
 ---
 <CaseStudy
   title="Implementation Integrity Analyzer"
-  dek="Static analysis for safety checks that AI-generated code defines but never runs. Part of AegisOps AI."
+  dek="Static analysis for safety checks that AI-generated code defines but never runs."
   description="A deterministic static analyzer for silent implementation integrity failures in AI-generated Python: safety checks that are written but never called."
   year="2026"
-  stack={['Python', 'AST analysis', 'FastAPI', 'pytest', 'GitHub Actions']}
+  stack={['Python', 'AST analysis', 'pytest', 'GitHub Actions']}
   links={[
     { label: 'Preprint', href: papers.iia.pdf },
     { label: 'Project page', href: papers.iia.page },
     { label: 'Code', href: papers.iia.code },
-    { label: 'AegisOps write-up', href: 'https://avnish1505.github.io/aegisops-ai-blog/' },
   ]}
   sources={sources}
+  toc={toc}
   ogImage="/og/integrity-analyzer.png"
 >
-  <h2>The failure</h2>
+  <h2 id="failure">The failure</h2>
   <p>
     An AI coding agent reports that it has wired a safety check into an execution path. The code parses, imports and passes its
     tests, and the check never runs. The function exists, nothing calls it, and no error is raised.
   </p>
   <p>
-    I ran into this while building AegisOps AI with a coding assistant, which twice scaffolded the safety gate without wiring it
+    I ran into this while building AegisOps with a coding assistant, which twice scaffolded the safety gate without wiring it
     in. Reviewing the diffs for architecture, not just syntax, is what caught it. This analyzer is an attempt to make that review
     mechanical.
   </p>
 
-  <h2>What it checks</h2>
+  <h2 id="checks">What it checks</h2>
   <p>It looks for three signatures in Python source.</p>
   <ul>
     <li>Functions whose bodies contain only scaffold markers.</li>
@@ -48,7 +62,7 @@ const sources: ClaimId[] = [
     configuration produces confident wrong answers.
   </p>
 
-  <h2>Results</h2>
+  <h2 id="results">Results</h2>
   <p>
     The benchmark has <Claim id="iia.scenarios" /> scenarios: five files with one seeded integrity failure each, five correctly
     wired files that must not be flagged, and five hard cases built to sit outside what intra-file analysis can see.
@@ -56,22 +70,37 @@ const sources: ClaimId[] = [
   <ConfusionGrid />
   <p>
     MCC <Claim id="iia.mcc" />, precision <Claim id="iia.precision" />, recall <Claim id="iia.recall" />. MCC is the headline
-    because the corpus is small and imbalanced.
+    because the corpus is small and imbalanced. You can check it from the four cells:
   </p>
+  <math display="block" aria-label="MCC equals 5 times 5 minus 4 times 1, over the square root of 9 times 6 times 9 times 6, which is 21 over 54, or 0.389">
+    <mrow>
+      <mi>MCC</mi><mo>=</mo>
+      <mfrac>
+        <mrow><mn class="m-good">5</mn><mo>·</mo><mn class="m-good">5</mn><mo>−</mo><mn class="m-bad">4</mn><mo>·</mo><mn class="m-bad">1</mn></mrow>
+        <msqrt><mrow><mn>9</mn><mo>·</mo><mn>6</mn><mo>·</mo><mn>9</mn><mo>·</mo><mn>6</mn></mrow></msqrt>
+      </mfrac>
+      <mo>=</mo><mfrac><mn>21</mn><mn>54</mn></mfrac><mo>≈</mo><mn>0.389</mn>
+    </mrow>
+  </math>
   <p>
-    The comparison is a string-presence check that asks whether the gate's name appears in the file. It predicts the same class
-    for everything, because a function's name always appears in its own definition. A text search cannot tell a gate that exists
-    from a gate that runs, so its precision and MCC are undefined.
+    The comparison is a string-presence check that asks whether the gate's name appears in the file. It never flags anything:
+    <Claim id="iia.base.tp" /> caught, <Claim id="iia.base.fp" /> false alarms, <Claim id="iia.base.fn" /> missed, <Claim id="iia.base.tn" /> left alone,
+    because a function's name always appears in its own definition. With nothing flagged, precision is 0/0 and one factor in MCC's
+    denominator is zero, so both are undefined. A text search cannot tell a gate that exists from a gate that runs.
   </p>
 
-  <h2>The errors</h2>
+  <h2 id="errors">The errors</h2>
   <p>
     The analyzer gets all ten straightforward cases right. Its <Claim id="iia.fp" /> false positives and <Claim id="iia.fn" /> false negative all come from the hard cases, and each one matches a limitation already documented in the
     code: no alias resolution, no calls through helper functions, no awareness of abstract methods, and no ordering analysis.
   </p>
   <p>
-    The false negative matters most. The gate is called, but in a branch that does not run before the guarded operation. The
-    analyzer asks whether the gate's name is in the operation's call set. It is, so the file is reported clean. Being in a call
+    The false negative matters most. The gate is called, but in a branch that does not run before the guarded operation.
+  </p>
+  <CodeBlock code={late} label="the shape of the miss" del={[2]} hot={[4]} />
+  <p>
+    <span class="illustrative">Illustrative, not the benchmark file.</span>{' '}
+    The analyzer asks whether the gate's name is in the operation's call set. It is, so the file is reported clean. Being in a call
     set is not the same as running before the action, and no threshold fixes that. It is the one error in the direction that
     ships an unguarded operation.
   </p>
@@ -80,26 +109,26 @@ const sources: ClaimId[] = [
     these numbers describe one detector on one corpus. They say nothing about how common the failure is in the wild.
   </p>
 
-  <h2>Where it lives: AegisOps AI</h2>
+  <h2 id="origin">Where it came from</h2>
   <p>
-    AegisOps AI is a research platform for human-supervised crisis decision support, run on synthetic, seeded scenarios. It is
-    not a dispatch system, and it never dispatches anything.
-  </p>
-  <p>
-    A rule-based allocator is the control condition. An LLM engine, <Claim id="ae.model" /> through NVIDIA NIM at temperature 0,
-    proposes assignments from the scenario plus evidence retrieved from a small local knowledge base. A deterministic policy layer
-    then revalidates every assignment against the scenario. Any validation failure returns a blocked result, and every result
-    requires human approval.
-  </p>
-  <p>
-    Two things are not done, and they belong on this page. The four agent roles are defined as contracts for a later multi-agent
-    phase, and they are <Claim id="ae.roles" />. And the committed experiment report over <Claim id="ae.report.scenarios" /> scenarios was generated without an API key, so the LLM engine took its <Claim id="ae.report.fallback" />. Live LLM results
-    are not reported yet. At the linked commit, <Claim id="ae.tests" /> tests pass.
+    The analyzer lives inside the AegisOps repository and is moving to its own. The results above were produced at a commit where
+    <Claim id="ae.tests" /> AegisOps tests pass. At that point AegisOps asked a language model to propose the whole allocation plan.
+    It has since been rebuilt so that a solver plans and the model only reads and drafts. The <a href="/work/aegisops/">AegisOps case study</a> covers
+    that change and why it happened.
   </p>
 
-  <h2>Reproduce</h2>
-  <pre><code>git clone https://github.com/Avnish1505/aegisops-ai
+  <h2 id="reproduce">Reproduce</h2>
+  <CodeBlock lang="bash" label="terminal" code={`git clone https://github.com/Avnish1505/aegisops-ai
 cd aegisops-ai
 pip install -r requirements-dev.txt
-pytest</code></pre>
+pytest`} />
 </CaseStudy>
+
+<style>
+  :global(.m-good) {
+    color: var(--mint);
+  }
+  :global(.m-bad) {
+    color: var(--rose);
+  }
+</style>

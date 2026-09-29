@@ -2,11 +2,20 @@
 import Base from '../layouts/Base.astro';
 ---
 <Base title="Page not found">
+  <p class="code hand">404</p>
   <h1 class="nf">This page doesn't exist.</h1>
   <p>The link may be old. The <a href="/">home page</a> lists everything on this site.</p>
 </Base>
 
 <style>
+  .code {
+    font-size: clamp(5rem, 16vw, 8rem);
+    line-height: 0.9;
+    color: var(--rose);
+    margin: 0 0 0.6rem;
+    transform: rotate(-4deg);
+    display: inline-block;
+  }
   .nf {
     font-size: clamp(1.8rem, 1.3rem + 2.5vw, 2.6rem);
     line-height: 1.1;

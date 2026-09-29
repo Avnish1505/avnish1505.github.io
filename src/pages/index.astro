@@ -5,6 +5,9 @@ import Claim from '../components/Claim.astro';
 import ContactLinks from '../components/ContactLinks.astro';
 import MccChart from '../components/MccChart.astro';
 import ConfusionGrid from '../components/ConfusionGrid.astro';
+import FaultStrip from '../components/FaultStrip.astro';
+import MccPlayground from '../components/MccPlayground.astro';
+import Repl from '../components/Repl.astro';
 import photo from '../assets/avnish.jpg';
 import { site } from '../site.config';
 import { papers, posts } from '../data/content';
@@ -22,64 +25,105 @@ const jsonLd = {
   description: site.description,
   affiliation: { '@type': 'CollegeOrUniversity', name: site.school },
   address: { '@type': 'PostalAddress', addressLocality: 'Lucknow', addressCountry: 'IN' },
-  knowsAbout: ['LLM evaluation', 'Benchmarks', 'Static analysis', 'Verification of AI-generated code'],
+  knowsAbout: ['LLM evaluation', 'Benchmarks', 'Static analysis', 'Verification of AI-generated code', 'Constraint solving'],
   sameAs: [site.github, site.linkedin],
 };
 ---
 <Base jsonLd={jsonLd}>
   <section class="hero">
     <div class="intro">
+      <p class="hello hand">Hi, I'm Avnish Singh.</p>
       <h1>{site.headline}</h1>
       <p>
         I'm a final-year computer science student at {site.school} in {site.city}, graduating in {site.graduation}.
         Most of my work is about one kind of bug: output that passes its checks and is still wrong.
         A coding agent says it finished and left a function out. A safety gate is written but never called.
         A model loads without an error and predicts the same class for every image.
-        I build the benchmarks and static checks that find these, and I report what they miss.
+        I build the benchmarks and deterministic checks that find these, and I report what they miss.
       </p>
       <p>
         I'm looking for AI/ML engineering internships and entry-level roles, in India, remote, Japan, Europe, the US, or Canada.
       </p>
       <ContactLinks />
     </div>
-    <Image
-      class="portrait"
-      src={photo}
-      alt="Portrait of Avnish Singh"
-      widths={[176, 352, 528]}
-      sizes="(max-width: 40rem) 112px, 176px"
-      loading="eager"
-      fetchpriority="high"
-    />
+    <figure class="polaroid">
+      <Image
+        src={photo}
+        alt="Portrait of Avnish Singh"
+        widths={[180, 360, 540]}
+        sizes="(max-width: 40rem) 120px, 180px"
+        loading="eager"
+        fetchpriority="high"
+      />
+      <figcaption class="hand" aria-hidden="true">Lucknow, 2026</figcaption>
+    </figure>
   </section>
 
+  <Repl />
+
   <p class="evidence">
-    Every highlighted number on this site is a link to the file, test run, or commit it came from.
-    For example, OmitBench passes <Claim id="ob.tests" /> tests. Follow the link to check.
+    <span class="hand">How to read this site:</span> every highlighted number links to the file, test run, or commit it came from.
+    Hover one to see where, or click it to check. For example, OmitBench has <Claim id="ob.tests" /> tests.
   </p>
 
   <section class="section" aria-labelledby="now">
     <h2 id="now">Now</h2>
-    <p>
-      <span class="muted">{site.now.date}.</span> I'm building AgentGrade, deterministic guardrails and a Python evaluation harness for a Salesforce Agentforce agent.
-      Its most useful result so far is a silent failure of its own: gate logic in Agent Script that validates cleanly and then never runs.
-      The integrity analyzer preprint is written, and arXiv submission is pending.
-    </p>
+    <p class="section-sub">September 2026</p>
+    <ol class="log">
+      <li>
+        <span class="when hand">19 Sep</span>
+        <div>
+          <p class="log-title"><a href="https://github.com/Avnish1505/agentgrade">AgentGrade</a>: an Agentforce agent with a deterministic gate and an outside evaluation harness</p>
+          <p>
+            Across <Claim id="ag.sessions" /> test sessions, the gate's return-window check ran <Claim id="ag.gateCalls" />.
+            The Agent Script validates cleanly and never executes in this org. It is the same failure my other projects look for,
+            found in my own work, and it is written up as the main result instead of worked around.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="when hand">23 Sep</span>
+        <div>
+          <p class="log-title"><a href="/work/aegisops/">AegisOps</a>: the model no longer allocates</p>
+          <p>
+            A CP-SAT solver now plans on road travel times, and the language model only reads reports and drafts text.
+            The verifier caught <Claim id="ae.fi.faults" /> injected faults. There are no live-model results yet.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="when hand">24 Sep</span>
+        <div>
+          <p class="log-title"><a href="/work/omitbench/#b7">OmitBench</a>: testing a vendor's calibration claim</p>
+          <p>
+            A probabilistic judge ranked omissions well, with AUROC <Claim id="ob.b7.auroc" />, and was not calibrated: ECE <Claim id="ob.b7.ece" /> against
+            a bar of <Claim id="ob.b7.eceBar" /> set before the run. Against the mid-tier LLM judge its paired MCC difference was <Claim id="ob.b7.delta" />.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="when hand">waiting</span>
+        <div>
+          <p class="log-title"><a href={papers.iia.page}>Integrity analyzer preprint</a></p>
+          <p>Submitted to arXiv under cs.SE, endorsed, and waiting to be announced.</p>
+        </div>
+      </li>
+    </ol>
   </section>
 
   <section id="work" class="section" aria-labelledby="work-heading">
     <h2 id="work-heading">Selected work</h2>
 
-    <article class="work">
+    <article class="work has-notes">
+      <span class="margin-note rose">Lost to a mid-tier judge. Shipped anyway.</span>
       <header>
         <h3><a href="/work/omitbench/">OmitBench</a></h3>
-        <span class="muted">2026</span>
+        <span class="yr hand">2026</span>
       </header>
       <p class="lede">A benchmark for silent omissions in coding-agent patches.</p>
       <p>
         On <Claim id="ob.instances" /> instances built by mutating real merged commits, my deterministic detector beat a grep baseline
-        and a reasoning LLM judge, then lost to a mid-tier LLM judge by an MCC difference of <Claim id="ob.delta.b5" />,
-        with a 95% interval that excludes zero. I kept that as the headline, and shipped my detector anyway as a CI gate,
+        and a reasoning LLM judge, then lost to a mid-tier LLM judge. I kept that as the headline, and shipped my detector anyway as a CI gate,
         because a gate that cries wolf gets switched off.
       </p>
       <MccChart />
@@ -90,15 +134,36 @@ const jsonLd = {
       </ul>
     </article>
 
-    <article class="work">
+    <article class="work has-notes">
+      <span class="margin-note mint">The model reads. A solver plans. A person decides.</span>
+      <header>
+        <h3><a href="/work/aegisops/">AegisOps</a></h3>
+        <span class="yr hand">2026</span>
+      </header>
+      <p class="lede">Crisis-response planning where no model output reaches a person unchecked.</p>
+      <p>
+        A research platform run on a fictional flood exercise set on real Lucknow places. A language model reads field reports in English,
+        Hindi or Hinglish. An OR-Tools CP-SAT solver assigns units over OSRM road travel times. Pure functions check every plan before
+        someone other than its proposer approves it, and every step goes into a hash-chained log. It never dispatches anything.
+      </p>
+      <FaultStrip />
+      <ul class="links">
+        <li><a href="/work/aegisops/">Case study</a></li>
+        <li><a href="https://github.com/Avnish1505/aegisops-ai">Code</a></li>
+        <li><a href={posts[1].href}>Write-up</a></li>
+      </ul>
+    </article>
+
+    <article class="work has-notes">
+      <span class="margin-note">Found while building AegisOps with a coding assistant.</span>
       <header>
         <h3><a href="/work/integrity-analyzer/">Implementation Integrity Analyzer</a></h3>
-        <span class="muted">2026</span>
+        <span class="yr hand">2026</span>
       </header>
       <p class="lede">Static analysis for safety checks that AI-generated code defines but never calls.</p>
       <p>
-        While building AegisOps AI with a coding assistant, I caught it scaffolding the safety gate twice without wiring it in.
-        This analyzer looks for that failure. On a benchmark of <Claim id="iia.scenarios" /> scenarios it reaches MCC <Claim id="iia.mcc" />,
+        My coding assistant twice scaffolded the safety gate without wiring it in. This analyzer looks for that failure.
+        On a benchmark of <Claim id="iia.scenarios" /> scenarios it reaches MCC <Claim id="iia.mcc" />,
         with precision <Claim id="iia.precision" /> and recall <Claim id="iia.recall" />.
         A name search catches nothing, because a function's name always appears in its own definition.
       </p>
@@ -106,19 +171,20 @@ const jsonLd = {
       <ul class="links">
         <li><a href="/work/integrity-analyzer/">Case study</a></li>
         <li><a href={papers.iia.pdf}>Preprint</a></li>
-        <li><a href="https://github.com/Avnish1505/aegisops-ai">Code</a></li>
+        <li><a href={papers.iia.code}>Code</a></li>
       </ul>
     </article>
 
-    <article class="work">
+    <article class="work has-notes">
+      <span class="margin-note">A triage filter, not a diagnosis.</span>
       <header>
         <h3><a href="/work/cancer-fusion/">Cancer Fusion AI</a></h3>
-        <span class="muted">2026</span>
+        <span class="yr hand">2026</span>
       </header>
       <p class="lede">A skin lesion classifier that combines dermoscopy images with patient metadata.</p>
       <p>
         Macro-F1 <Claim id="cf.test.macroF1" /> on <Claim id="cf.test.n" /> held-out test images, and <Claim id="cf.valMacroF1" /> on the
-        validation set used to pick the checkpoint. Melanoma recall is <Claim id="cf.test.melRecall" /> at precision <Claim id="cf.test.melPrecision" />, so I treat it as a triage filter, not a diagnosis.
+        validation set used to pick the checkpoint. Melanoma recall is <Claim id="cf.test.melRecall" /> at precision <Claim id="cf.test.melPrecision" />.
         The bug I learned the most from was silent: a stale checkpoint loaded without an error, and the model predicted one class for every image.
       </p>
       <ul class="links">
@@ -126,6 +192,15 @@ const jsonLd = {
         <li><a href="https://github.com/Avnish1505/cancer-fusion-ai">Code</a></li>
       </ul>
     </article>
+  </section>
+
+  <section class="section" aria-labelledby="mcc-heading">
+    <h2 id="mcc-heading">Why every headline here is MCC</h2>
+    <p>
+      At OmitBench's base rate, a detector that flags everything scores F1 <Claim id="ob.f1.flagAll" /> and MCC <Claim id="ob.mcc.flagAll" />.
+      I pick the metric before running the experiment, and on imbalanced data F1 rewards doing nothing useful. Load an example or change the counts.
+    </p>
+    <MccPlayground />
   </section>
 
   <section class="section" aria-labelledby="research-heading">
@@ -159,50 +234,129 @@ const jsonLd = {
   .hero {
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 2rem 2.75rem;
+    gap: 1.5rem 2.5rem;
     align-items: start;
   }
+  .hello {
+    font-size: 1.75rem;
+    color: var(--yellow);
+    margin: 0 0 0.5rem;
+    transform: rotate(-2deg);
+    transform-origin: left;
+    display: inline-block;
+  }
   h1 {
-    font-size: clamp(2.05rem, 1.35rem + 3.3vw, 3.35rem);
-    line-height: 1.06;
+    font-size: clamp(2rem, 1.25rem + 2.9vw, 3rem);
+    line-height: 1.07;
     letter-spacing: -0.026em;
-    font-weight: 660;
-    max-width: 20ch;
-    margin-bottom: 1.6rem;
-    text-wrap: balance;
+    font-weight: 750;
+    max-width: 21ch;
+    margin-bottom: 1.5rem;
   }
   .intro p {
     max-width: 58ch;
   }
   .intro :global(.links) {
-    margin-top: 1.4rem;
+    margin-top: 1.3rem;
   }
-  .portrait {
-    width: 176px;
-    height: 176px;
-    border-radius: 6px;
+  .polaroid {
+    margin: 2.4rem 0 0;
+    padding: 9px 9px 0;
+    width: 198px;
+    background: #f6f4ec;
+    border-radius: 3px;
+    box-shadow: var(--shadow);
+    transform: rotate(2.5deg);
+    position: relative;
+  }
+  .polaroid::before {
+    content: '';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    width: 78px;
+    height: 24px;
+    transform: translateX(-50%) rotate(-4deg);
+    background: color-mix(in srgb, var(--yellow) 55%, transparent);
+    opacity: 0.75;
+    border-radius: 2px;
+  }
+  .polaroid :global(img) {
+    width: 180px;
+    height: 180px;
     object-fit: cover;
-    margin-top: 0.45rem;
-    filter: saturate(0.9);
+    border-radius: 1px;
+  }
+  .polaroid figcaption {
+    color: #3a3f4a;
+    font-size: 1.3rem;
+    text-align: center;
+    padding: 6px 0 8px;
   }
   .evidence {
-    margin-top: 2.5rem;
-    padding-top: 1.1rem;
-    border-top: 1px solid var(--rule);
-    font-family: var(--sans);
+    margin-top: 3rem;
+    padding: 14px 16px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 12px;
     font-size: 0.95rem;
     line-height: 1.6;
-    color: var(--muted);
-    max-width: 60ch;
+    color: var(--text-dim);
+    max-width: none;
+  }
+  .evidence .hand {
+    font-size: 1.3rem;
+    color: var(--yellow);
+    margin-right: 0.2rem;
   }
   .evidence :global(.claim) {
-    color: var(--ink);
+    color: var(--text);
   }
+
+  .log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1.3rem;
+  }
+  .log li {
+    display: grid;
+    grid-template-columns: 5.2rem 1fr;
+    gap: 0.5rem 1rem;
+  }
+  .when {
+    font-size: 1.35rem;
+    color: var(--yellow);
+    padding-top: 0.1rem;
+  }
+  .log p {
+    margin: 0;
+  }
+  .log-title {
+    font-weight: 650;
+    margin-bottom: 0.2rem !important;
+  }
+  .log-title a {
+    color: var(--text);
+  }
+
   .work {
-    margin-top: 2.6rem;
+    padding-top: 2.4rem;
+    margin-top: 2.4rem;
+    border-top: 1px dashed var(--line-strong);
   }
   .work:first-of-type {
+    padding-top: 0;
     margin-top: 0;
+    border-top: 0;
+  }
+  .work:first-of-type .margin-note {
+    top: 0.15rem;
+  }
+  @media (min-width: 64rem) {
+    .work .margin-note {
+      top: 2.55rem;
+    }
   }
   .work header {
     display: flex;
@@ -211,25 +365,27 @@ const jsonLd = {
     gap: 1rem;
   }
   .work h3 {
-    font-size: 1.35rem;
+    font-size: 1.5rem;
   }
   .work h3 a {
+    color: var(--text);
     text-decoration: none;
   }
   .work h3 a:hover {
     text-decoration: underline;
-    text-decoration-thickness: 1px;
+    text-decoration-thickness: 2px;
+    text-decoration-color: var(--yellow);
   }
-  .work header .muted {
-    font-family: var(--sans);
-    font-size: 0.88rem;
+  .yr {
+    font-size: 1.4rem;
+    color: var(--text-faint);
   }
   .lede {
-    font-family: var(--sans);
-    font-size: 1.02rem;
-    color: var(--muted);
+    font-size: 1.05rem;
+    color: var(--text-dim);
     margin: 0.2rem 0 0.9rem;
   }
+
   .entries {
     list-style: none;
     padding: 0;
@@ -243,14 +399,13 @@ const jsonLd = {
     max-width: var(--measure);
   }
   .entry-title {
-    font-family: var(--sans);
-    font-weight: 560;
+    font-weight: 600;
     line-height: 1.35;
-    text-decoration: none;
+    color: var(--text);
+    text-decoration-color: var(--line-strong);
   }
   .entry-title:hover {
-    text-decoration: underline;
-    text-decoration-thickness: 1px;
+    text-decoration-color: var(--yellow);
   }
   .entries .muted {
     font-size: 0.92rem;
@@ -260,11 +415,22 @@ const jsonLd = {
     .hero {
       grid-template-columns: 1fr;
     }
-    .portrait {
+    .polaroid {
       grid-row: 1;
-      width: 112px;
-      height: 112px;
-      margin-top: 0;
+      width: 138px;
+      margin-top: 0.5rem;
+      transform: rotate(-2deg);
+    }
+    .polaroid :global(img) {
+      width: 120px;
+      height: 120px;
+    }
+    .polaroid figcaption {
+      font-size: 1.1rem;
+    }
+    .log li {
+      grid-template-columns: 1fr;
+      gap: 0;
     }
   }
 </style>

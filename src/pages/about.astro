@@ -5,6 +5,7 @@ import { site } from '../site.config';
 import { earlier } from '../data/content';
 ---
 <Base title="About" description="Avnish Singh, final-year computer science student at Babu Banarasi Das University, Lucknow. Looking for AI/ML engineering internships and entry-level roles.">
+  <p class="page-note hand">Lucknow, graduating May 2027.</p>
   <h1 class="page-title">About</h1>
 
   <p>
@@ -46,15 +47,23 @@ import { earlier } from '../data/content';
 </Base>
 
 <style>
+  .page-note {
+    font-size: 1.6rem;
+    color: var(--yellow);
+    margin: 0 0 0.3rem;
+    transform: rotate(-2deg);
+    transform-origin: left;
+    display: inline-block;
+  }
   .page-title {
     font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
     line-height: 1.06;
     letter-spacing: -0.024em;
-    font-weight: 660;
+    font-weight: 750;
     margin-bottom: 2rem;
   }
   h2 {
-    margin: 2.75rem 0 0.8rem;
+    margin: 2.9rem 0 0.8rem;
   }
   .earlier {
     padding-left: 1.2rem;
@@ -64,6 +73,6 @@ import { earlier } from '../data/content';
     margin-bottom: 0.5rem;
   }
   .earlier li::marker {
-    color: var(--muted);
+    color: var(--text-faint);
   }
 </style>

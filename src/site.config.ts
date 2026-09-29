@@ -14,7 +14,7 @@ export const site = {
   city: 'Lucknow, India',
   graduation: 'May 2027',
   // Bump this whenever content changes. Shown in the footer.
-  updated: '2026-09-16',
+  updated: '2026-09-29',
   now: {
     date: 'September 2026',
   },

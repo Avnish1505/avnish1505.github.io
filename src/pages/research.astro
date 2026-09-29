@@ -4,6 +4,7 @@ import Claim from '../components/Claim.astro';
 import { papers } from '../data/content';
 ---
 <Base title="Research" description="A preprint on detecting silent implementation integrity failures in AI-generated code, and a co-authored conference paper on AI in law.">
+  <p class="page-note hand">Papers, and what each one claims.</p>
   <h1 class="page-title">Research</h1>
 
   <article class="paper">
@@ -38,25 +39,36 @@ import { papers } from '../data/content';
 </Base>
 
 <style>
+  .page-note {
+    font-size: 1.6rem;
+    color: var(--yellow);
+    margin: 0 0 0.3rem;
+    transform: rotate(-2deg);
+    transform-origin: left;
+    display: inline-block;
+  }
   .page-title {
     font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
     line-height: 1.06;
     letter-spacing: -0.024em;
-    font-weight: 660;
+    font-weight: 750;
     margin-bottom: 2.5rem;
   }
   .paper {
-    margin-bottom: 3rem;
+    margin-bottom: 2.4rem;
+    padding: 20px 20px 16px;
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 14px;
   }
   .paper h2 {
     font-size: 1.28rem;
     line-height: 1.32;
-    max-width: 40ch;
+    max-width: 42ch;
   }
   .meta {
-    font-family: var(--sans);
     font-size: 0.95rem;
-    color: var(--muted);
+    color: var(--text-dim);
     margin: 0.5rem 0 0.9rem;
   }
 </style>

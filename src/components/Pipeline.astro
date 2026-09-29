@@ -1,0 +1,250 @@
+---
+import Claim from './Claim.astro';
+
+// Stages and owners come from the AegisOps README and docs/STATUS.md at the pinned commit.
+const stages = [
+  {
+    key: 'read', name: 'Read', who: 'model',
+    body: 'A language model turns a field report in English, Hindi or Hinglish into a schema. Every field has to quote the report. A field it cannot ground is dropped.',
+  },
+  {
+    key: 'triage', name: 'Triage', who: 'human',
+    body: 'An operator confirms the facts. Severity comes from fixed rules, not from the model.',
+  },
+  {
+    key: 'plan', name: 'Plan', who: 'code',
+    body: 'OR-Tools CP-SAT assigns units over OSRM road travel times. Operator constraints are typed (reserve, exclude, priority), and an infeasible set of constraints is explained, not silently relaxed.',
+  },
+  {
+    key: 'verify', name: 'Verify', who: 'code',
+    body: 'checks',
+  },
+  {
+    key: 'decide', name: 'Decide', who: 'human',
+    body: 'A person approves or rejects with a reason code. Whoever proposed a plan cannot approve it, and a blocked plan cannot be approved at all.',
+  },
+  {
+    key: 'communicate', name: 'Communicate', who: 'model',
+    body: 'The model drafts a situation report and an alert from verified facts. Every number in the draft is re-checked, and nothing is sent.',
+  },
+  {
+    key: 'record', name: 'Record', who: 'code',
+    body: 'Every step appends an event to a hash chain. Editing any event, or deleting one that has later events after it, breaks the chain, and every decision can be replayed from stored inputs.',
+  },
+];
+const whoLabel: Record<string, string> = { model: 'model', human: 'person', code: 'deterministic code' };
+---
+<figure class="fig pipe" id="pipeline-fig">
+  <p class="fig-title">Seven steps, three kinds of owner</p>
+  <p class="legend small">
+    <span class="lg model">model</span>
+    <span class="lg code">deterministic code</span>
+    <span class="lg human">person</span>
+  </p>
+  <div class="body">
+  <ol class="stages" role="tablist" aria-label="Pipeline stage" aria-orientation="vertical">
+    {stages.map((s, i) => (
+      <li>
+        <button type="button" role="tab" class:list={['stage', s.who]} id={`pl-tab-${s.key}`} aria-controls={`pl-panel-${s.key}`} aria-selected={i === 3 ? 'true' : 'false'} tabindex={i === 3 ? 0 : -1}>
+          <span class="nm">{s.name}</span>
+          <span class="who">{whoLabel[s.who]}</span>
+        </button>
+      </li>
+    ))}
+  </ol>
+  <div class="panels">
+    {stages.map((s) => (
+      <section class="panel" role="tabpanel" id={`pl-panel-${s.key}`} aria-labelledby={`pl-tab-${s.key}`}>
+        <h3 class:list={['panel-title', s.who]}>{s.name} <span>{whoLabel[s.who]}</span></h3>
+        {s.body === 'checks' ? (
+          <p>
+            Pure functions run <Claim id="ae.verifier.checks" /> checks on every plan, whichever engine made it: units exist and are free,
+            none is used twice, capabilities and quantities match, travel times are recomputed from the road matrix, critical incidents
+            are covered, the objective is compared with the solver's optimum, citations quote real evidence, and report numbers match
+            the plan. Any critical failure blocks the plan.
+          </p>
+        ) : <p>{s.body}</p>}
+      </section>
+    ))}
+  </div>
+  </div>
+</figure>
+
+<style>
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: -0.2rem 0 0.8rem;
+    color: var(--text-dim);
+  }
+  .lg::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: 0;
+  }
+  .lg.model::before { background: var(--sky); }
+  .lg.code::before { background: var(--mint); }
+  .lg.human::before { background: var(--yellow); }
+
+  .stages {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: none;
+    counter-reset: step;
+  }
+  .pipe.js .stages {
+    display: grid;
+    gap: 10px;
+  }
+  .stages li {
+    position: relative;
+  }
+  .stages li + li::before {
+    content: '';
+    position: absolute;
+    left: 1.35rem;
+    top: -11px;
+    height: 10px;
+    border-left: 1.5px solid var(--text-faint);
+  }
+  .stage {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1.1rem 1fr;
+    column-gap: 8px;
+    align-items: baseline;
+    text-align: left;
+    padding: 7px 10px;
+    border-radius: 10px;
+    background: var(--bg);
+    border: 1.5px solid var(--line-strong);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    counter-increment: step;
+  }
+  .stage::before {
+    content: counter(step);
+    grid-row: span 2;
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--text-faint);
+  }
+  .stage .nm {
+    font-weight: 650;
+    font-size: 0.95rem;
+    line-height: 1.2;
+  }
+  .stage .who {
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+  .stage.model { border-color: color-mix(in srgb, var(--sky) 60%, transparent); }
+  .stage.code { border-color: color-mix(in srgb, var(--mint) 60%, transparent); }
+  .stage.human { border-color: color-mix(in srgb, var(--yellow) 60%, transparent); }
+  .stage.model .who { color: var(--sky); }
+  .stage.code .who { color: var(--mint); }
+  .stage.human .who { color: var(--yellow); }
+  .stage:hover {
+    background: var(--bg-sunk);
+  }
+  .stage[aria-selected='true'] {
+    box-shadow: 0 0 0 3px var(--mark);
+  }
+  .stage.model[aria-selected='true'] { background: color-mix(in srgb, var(--sky) 16%, var(--bg)); }
+  .stage.code[aria-selected='true'] { background: color-mix(in srgb, var(--mint) 16%, var(--bg)); }
+  .stage.human[aria-selected='true'] { background: color-mix(in srgb, var(--yellow) 16%, var(--bg)); }
+
+  .pipe.js .body {
+    display: grid;
+    grid-template-columns: 12.5rem 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 40rem) {
+    .pipe.js .body {
+      grid-template-columns: 1fr;
+    }
+    .pipe.js .stages {
+      grid-template-columns: 1fr 1fr;
+    }
+    .stages li + li::before {
+      display: none;
+    }
+  }
+
+  .panels {
+    margin-top: 0.4rem;
+  }
+  .pipe.js .panels {
+    margin-top: 0;
+    padding: 4px 0 0 20px;
+    border-left: 1px dashed var(--line-strong);
+    position: sticky;
+    top: calc(var(--topbar-h) + 20px);
+  }
+  @media (max-width: 40rem) {
+    .pipe.js .panels {
+      padding: 14px 0 0;
+      border-left: 0;
+      border-top: 1px dashed var(--line-strong);
+      position: static;
+      min-height: 10rem;
+    }
+  }
+  .panel + .panel {
+    margin-top: 0.9rem;
+  }
+  .pipe.js .panel + .panel {
+    margin-top: 0;
+  }
+  .panel p {
+    margin: 0;
+    font-size: 0.97rem;
+  }
+  .panel-title {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+  }
+  .panel-title span {
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.15rem;
+    margin-left: 0.4rem;
+  }
+  .panel-title.model span { color: var(--sky); }
+  .panel-title.code span { color: var(--mint); }
+  .panel-title.human span { color: var(--yellow); }
+</style>
+
+<script>
+  const root = document.getElementById('pipeline-fig');
+  if (root) {
+    root.classList.add('js');
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const select = (i: number, focus = false) => {
+      tabs.forEach((t, j) => { t.setAttribute('aria-selected', String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+      panels.forEach((p, j) => (p.hidden = i !== j));
+      if (focus) tabs[i].focus();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i));
+      t.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); select((i + 1) % tabs.length, true); }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); select((i - 1 + tabs.length) % tabs.length, true); }
+      });
+    });
+    select(tabs.findIndex((t) => t.getAttribute('aria-selected') === 'true'));
+  }
+</script>
