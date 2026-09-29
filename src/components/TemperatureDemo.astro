@@ -1,0 +1,187 @@
+---
+import Claim from './Claim.astro';
+import { claims } from '../data/claims';
+
+// Illustrative logits for one image. Only the fitted T is a real number.
+const classes = [
+  { k: 'akiec', name: 'actinic keratosis', z: 0.2 },
+  { k: 'bcc', name: 'basal cell carcinoma', z: 0.6 },
+  { k: 'bkl', name: 'benign keratosis', z: 1.4 },
+  { k: 'df', name: 'dermatofibroma', z: -0.9 },
+  { k: 'mel', name: 'melanoma', z: 3.1 },
+  { k: 'nv', name: 'melanocytic nevus', z: 2.3 },
+  { k: 'vasc', name: 'vascular lesion', z: -1.6 },
+];
+const fitted = Number(claims['cf.temperature'].value);
+const softmax = (T: number) => {
+  const e = classes.map((c) => Math.exp(c.z / T));
+  const s = e.reduce((a, b) => a + b, 0);
+  return e.map((x) => x / s);
+};
+const p0 = softmax(1);
+---
+<figure class="fig temp" id="temperature-demo" data-classes={JSON.stringify(classes)} data-fitted={fitted}>
+  <p class="fig-title">Temperature changes confidence, never the answer</p>
+
+  <math display="block" aria-label="p sub k equals e to the z k over T, divided by the sum over j of e to the z j over T">
+    <mrow>
+      <msub><mi>p</mi><mi>k</mi></msub><mo>=</mo>
+      <mfrac>
+        <msup><mi>e</mi><mrow><msub><mi>z</mi><mi>k</mi></msub><mo>/</mo><mi class="t-var">T</mi></mrow></msup>
+        <mrow><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><mn>7</mn></munderover><msup><mi>e</mi><mrow><msub><mi>z</mi><mi>j</mi></msub><mo>/</mo><mi class="t-var">T</mi></mrow></msup></mrow>
+      </mfrac>
+    </mrow>
+  </math>
+
+  <div class="control">
+    <label for="t-slider">T = <output id="t-out" for="t-slider">1.00</output></label>
+    <input id="t-slider" type="range" min="0.5" max="4" step="0.01" value="1" />
+    <div class="t-buttons">
+      <button type="button" class="btn" data-t="1" aria-pressed="true">T = 1, raw logits</button>
+      <button type="button" class="btn" data-t={fitted} aria-pressed="false">T = {fitted}, fitted</button>
+    </div>
+  </div>
+
+  <ol class="bars" aria-label="Predicted probability per class">
+    {classes.map((c, i) => (
+      <li class:list={['bar', { top: c.k === 'mel' }]}>
+        <span class="k"><b>{c.k}</b><span class="nm">{c.name}</span></span>
+        <span class="track"><span class="fill" style={`width:${(p0[i] * 100).toFixed(1)}%`}></span></span>
+        <output class="pv" data-i={i}>{p0[i].toFixed(2)}</output>
+      </li>
+    ))}
+  </ol>
+  <p class="argmax hand" aria-live="polite">Prediction: mel, at every T. Confidence: <span id="t-conf">{p0[4].toFixed(2)}</span></p>
+
+  <figcaption>
+    <span class="illustrative">Illustrative logits for one image.</span>{' '}
+    Dividing every logit by the same T keeps their order, so accuracy and macro-F1 cannot move. What moves is how sure the model sounds.
+    Fitting T on the validation set cut test calibration error from <Claim id="cf.ece.before" /> to <Claim id="cf.ece.after" />.
+  </figcaption>
+</figure>
+
+<style>
+  .temp :global(.t-var) {
+    color: var(--yellow);
+  }
+  .control {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 10px 16px;
+    margin: 0.6rem 0 1rem;
+  }
+  .control label {
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+    min-width: 5.5rem;
+  }
+  .control output {
+    color: var(--yellow);
+  }
+  .t-buttons {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  input[type='range'] {
+    width: 100%;
+    accent-color: var(--yellow);
+  }
+  .bars {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 6px;
+  }
+  .bar {
+    display: grid;
+    grid-template-columns: minmax(7rem, 12rem) 1fr 2.8rem;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.86rem;
+  }
+  .k {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .k b {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .nm {
+    color: var(--text-faint);
+    font-size: 0.76rem;
+  }
+  .track {
+    height: 12px;
+    border-radius: 6px;
+    background: var(--bg-sunk);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .fill {
+    display: block;
+    height: 100%;
+    background: var(--text-faint);
+    transition: width 120ms linear;
+  }
+  .top .fill {
+    background: var(--yellow);
+  }
+  .top b {
+    color: var(--yellow);
+  }
+  .pv {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .argmax {
+    margin: 0.8rem 0 0;
+    font-size: 1.35rem;
+    color: var(--yellow);
+  }
+  @media (max-width: 34rem) {
+    .bar {
+      grid-template-columns: 4.2rem 1fr 2.6rem;
+    }
+    .nm {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const root = document.getElementById('temperature-demo');
+  if (root) {
+    const classes: { z: number }[] = JSON.parse(root.dataset.classes ?? '[]');
+    const slider = root.querySelector<HTMLInputElement>('#t-slider')!;
+    const out = root.querySelector<HTMLOutputElement>('#t-out')!;
+    const fills = [...root.querySelectorAll<HTMLElement>('.fill')];
+    const vals = [...root.querySelectorAll<HTMLOutputElement>('.pv')];
+    const conf = root.querySelector<HTMLElement>('#t-conf')!;
+    const buttons = [...root.querySelectorAll<HTMLButtonElement>('[data-t]')];
+    const render = (T: number) => {
+      const e = classes.map((c) => Math.exp(c.z / T));
+      const s = e.reduce((a, b) => a + b, 0);
+      const p = e.map((x) => x / s);
+      p.forEach((v, i) => {
+        fills[i].style.width = `${(v * 100).toFixed(1)}%`;
+        vals[i].textContent = v.toFixed(2);
+      });
+      out.textContent = T.toFixed(2);
+      conf.textContent = Math.max(...p).toFixed(2);
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(Math.abs(Number(b.dataset.t) - T) < 0.006)));
+    };
+    slider.addEventListener('input', () => render(Number(slider.value)));
+    buttons.forEach((b) => b.addEventListener('click', () => {
+      slider.value = b.dataset.t!;
+      render(Number(b.dataset.t));
+    }));
+    render(Number(slider.value));
+  }
+</script>

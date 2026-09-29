@@ -2,6 +2,8 @@
 import CaseStudy from '../../layouts/CaseStudy.astro';
 import Claim from '../../components/Claim.astro';
 import MccChart from '../../components/MccChart.astro';
+import MutationExplorer from '../../components/MutationExplorer.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
 import type { ClaimId } from '../../data/claims';
 
 const sources: ClaimId[] = [
@@ -10,7 +12,18 @@ const sources: ClaimId[] = [
   'ob.delta.b3', 'ob.delta.b4', 'ob.delta.b5', 'ob.deltaCi.b5', 'ob.recall.absent.p1', 'ob.recall.other.p1',
   'ob.extraction.cost', 'ob.extraction.mcc', 'ob.real.trajectories', 'ob.real.omitted', 'ob.real.fpr',
   'ob.precision.p1', 'ob.fpr.p1', 'ob.fpr.b5', 'ob.gate.precision', 'ob.gate.bar', 'ob.gate.fired', 'ob.gate.p95',
-  'ob.tests', 'ob.unwired.n',
+  'ob.tests', 'ob.unwired.n', 'ob.recall.absent.b5', 'ob.recall.unwired.b5', 'ob.recall.stub.b5',
+  'ob.b7.auroc', 'ob.b7.ece', 'ob.b7.eceBar', 'ob.b7.delta', 'ob.b7.deltaCi',
+];
+const toc = [
+  { id: 'question', label: 'The question' },
+  { id: 'benchmark', label: 'How the benchmark is built' },
+  { id: 'results', label: 'Results' },
+  { id: 'against', label: 'What went against me' },
+  { id: 'b7', label: 'A judge that reports a probability' },
+  { id: 'gate', label: 'Shipping it as a gate' },
+  { id: 'limits', label: 'Limits' },
+  { id: 'reproduce', label: 'Reproduce' },
 ];
 ---
 <CaseStudy
@@ -24,16 +37,17 @@ const sources: ClaimId[] = [
     { label: 'Write-up', href: 'https://avnish1505.github.io/omitbench-engineering-blog/' },
   ]}
   sources={sources}
+  toc={toc}
   ogImage="/og/omitbench.png"
 >
-  <h2>The question</h2>
+  <h2 id="question">The question</h2>
   <p>
     When a coding agent reports that it is done, part of what it planned can be missing from the diff. The patch applies,
     nothing errors, and the gap shows up later. I wanted to know whether a detector built only on program analysis could find
     those omissions better than an LLM judge, without ever seeing the reference solution.
   </p>
 
-  <h2>How the benchmark is built</h2>
+  <h2 id="benchmark">How the benchmark is built</h2>
   <p>
     I took real merged commits from <Claim id="ob.libraries" /> Python libraries: attrs, click, flask, httpx, itsdangerous, jinja,
     requests and werkzeug. For each commit I applied the full patch, then broke one newly defined symbol in one of three ways.
@@ -43,6 +57,7 @@ const sources: ClaimId[] = [
     <li><code>UNWIRED</code>: the definition stays and every call to it is neutralised, so it reads as finished and never runs.</li>
     <li><code>STUB</code>: the definition and its calls stay, and the body is hollowed out.</li>
   </ul>
+  <MutationExplorer />
   <p>
     That gives <Claim id="ob.instances" /> instances and <Claim id="ob.requirements" /> requirements scored per detector, at a
     base rate of <Claim id="ob.baseRate" />. The mutation defines the label, so ground truth costs nothing. No detector ever
@@ -53,18 +68,27 @@ const sources: ClaimId[] = [
     everything, which scores F1 <Claim id="ob.f1.flagAll" /> and MCC <Claim id="ob.mcc.flagAll" />.
   </p>
 
-  <h2>Results</h2>
+  <h2 id="results">Results</h2>
   <MccChart />
-  <p>Every detector sees the same instances, so the comparison that matters is the paired difference:</p>
+  <p>Every detector sees the same instances, so the comparison that matters is the paired difference, resampled by instance:</p>
+  <math display="block" aria-label="Delta MCC equals MCC of P1 minus MCC of B, with a 95 percent interval from the 2.5th and 97.5th percentiles over bootstrap resamples of instances">
+    <mrow>
+      <mi mathvariant="normal">Δ</mi><mo>=</mo><msub><mi>MCC</mi><mtext>P1</mtext></msub><mo>−</mo><msub><mi>MCC</mi><mtext>B</mtext></msub>
+      <mo>,</mo><mspace width="1em"></mspace>
+      <msub><mtext>CI</mtext><mn>95</mn></msub><mo>=</mo>
+      <mrow><mo>[</mo><msub><mi>q</mi><mn>0.025</mn></msub><mo stretchy="false">(</mo><msup><mi mathvariant="normal">Δ</mi><mo>*</mo></msup><mo stretchy="false">)</mo><mo>,</mo><mspace width="0.3em"></mspace><msub><mi>q</mi><mn>0.975</mn></msub><mo stretchy="false">(</mo><msup><mi mathvariant="normal">Δ</mi><mo>*</mo></msup><mo stretchy="false">)</mo><mo>]</mo></mrow>
+    </mrow>
+  </math>
+  <p class="small muted">Each <em>Δ*</em> is the same difference on a resample of instances, not of requirements, because the requirements of one instance share a repository, a patch and a symbol. Resampling them one by one would pretend they are independent and give intervals that are too narrow.</p>
   <div class="table-scroll">
     <table>
       <thead>
         <tr><th scope="col">My detector against</th><th scope="col">MCC difference</th><th scope="col">95% interval</th></tr>
       </thead>
       <tbody>
-        <tr><td>Line grep, no AST</td><td><Claim id="ob.delta.b3" /></td><td>excludes zero, I win</td></tr>
-        <tr><td>Reasoning LLM judge</td><td><Claim id="ob.delta.b4" /></td><td>excludes zero, I win</td></tr>
-        <tr><td>Mid-tier LLM judge</td><td><Claim id="ob.delta.b5" /></td><td><Claim id="ob.deltaCi.b5" />, I lose</td></tr>
+        <tr><td>Line grep, no AST</td><td><Claim id="ob.delta.b3" /></td><td class="win">excludes zero, I win</td></tr>
+        <tr><td>Reasoning LLM judge</td><td><Claim id="ob.delta.b4" /></td><td class="win">excludes zero, I win</td></tr>
+        <tr><td>Mid-tier LLM judge</td><td><Claim id="ob.delta.b5" /></td><td class="lose"><Claim id="ob.deltaCi.b5" />, I lose</td></tr>
       </tbody>
     </table>
   </div>
@@ -75,7 +99,7 @@ const sources: ClaimId[] = [
     supported for that judge.
   </p>
 
-  <h2>What went against me</h2>
+  <h2 id="against">What went against me</h2>
   <p>
     Two more elaborate detectors added reachability analysis. They flagged most correct public API symbols as missing and lost
     to plain grep. I allowed myself one fix, decided in advance and measured once. It narrowed the gap but did not clear the bar
@@ -91,7 +115,32 @@ const sources: ClaimId[] = [
     positive rate: <Claim id="ob.real.fpr" /> on real code against <Claim id="ob.fpr.p1" /> on the synthetic corpus.
   </p>
 
-  <h2>Shipping it as a gate</h2>
+  <h2 id="b7">A judge that reports a probability</h2>
+  <p>
+    The mid-tier judge beats my detector, but it returns a bare label, so a gate built on it has nothing to threshold.
+    I added B7: TypeSafe's Jev, a model that answers yes or no questions with a probability. Its makers describe those
+    probabilities as calibrated and publish no calibration numbers, so I tested that on this task. The variants, the thresholds
+    and the rule for "calibrated" were written down before the first call.
+  </p>
+  <p>
+    It ranks well, with AUROC <Claim id="ob.b7.auroc" />. It is not calibrated: expected calibration error is <Claim id="ob.b7.ece" /> against
+    a pre-registered bar of <Claim id="ob.b7.eceBar" />, and it predicts omissions more often than they happen in every probability bin.
+    As a judge it loses to the mid-tier LLM: the paired MCC difference is <Claim id="ob.b7.delta" />, with an interval of <Claim id="ob.b7.deltaCi" />.
+  </p>
+  <math display="block" aria-label="Expected calibration error equals the sum over bins b of the fraction of items in bin b times the absolute difference between the observed rate and the mean predicted probability in that bin">
+    <mrow>
+      <mtext>ECE</mtext><mo>=</mo>
+      <munder><mo>∑</mo><mi>b</mi></munder>
+      <mfrac><mrow><mo>|</mo><msub><mi>B</mi><mi>b</mi></msub><mo>|</mo></mrow><mi>n</mi></mfrac>
+      <mrow><mo>|</mo><mtext>observed</mtext><mo>(</mo><msub><mi>B</mi><mi>b</mi></msub><mo>)</mo><mo>−</mo><mtext>predicted</mtext><mo>(</mo><msub><mi>B</mi><mi>b</mi></msub><mo>)</mo><mo>|</mo></mrow>
+    </mrow>
+  </math>
+  <p>
+    High AUROC with high ECE is a useful combination to be able to name: the model orders cases correctly, but its 0.8 does not mean 80%.
+    A gate that thresholds it would need recalibration first.
+  </p>
+
+  <h2 id="gate">Shipping it as a gate</h2>
   <p>
     The GitHub Action reads an explicit checklist of symbols from the pull request and comments when one is missing from the
     diff. It uses my detector only, with no LLM and no network call. Requirements come from the checklist and are never guessed
@@ -103,20 +152,20 @@ const sources: ClaimId[] = [
   </p>
   <p>
     On a demo pull request with a deliberately missing symbol, the workflow commented in <Claim id="ob.gate.fired" />. Detection
-    takes <Claim id="ob.gate.p95" /> per instance at p95, and <Claim id="ob.tests" /> tests pass. That is one demo on my own
+    takes <Claim id="ob.gate.p95" /> per instance at p95, and the suite now has <Claim id="ob.tests" /> tests. That is one demo on my own
     repository. It shows the mechanism works, not that any team gets value from it.
   </p>
 
-  <h2>Limits</h2>
+  <h2 id="limits">Limits</h2>
   <ul>
     <li>The omissions are injected, not observed. Until there are real traces that contain real omissions, none of this generalises to deployed agents.</li>
     <li>Python only, and only functions and classes. No config keys, dependencies or behaviour-only requirements.</li>
     <li><code>UNWIRED</code> has <Claim id="ob.unwired.n" /> instances. It needs about a hundred before that column means more than noise.</li>
   </ul>
 
-  <h2>Reproduce</h2>
-  <pre><code>git clone https://github.com/Avnish1505/Omitbench
+  <h2 id="reproduce">Reproduce</h2>
+  <CodeBlock lang="bash" label="terminal" code={`git clone https://github.com/Avnish1505/Omitbench
 cd Omitbench
 make test        # unit tests and leakage guards
-make reproduce   # regenerates every number from committed shards, no network or API key</code></pre>
+make reproduce   # regenerates every number from committed shards, no network or API key`} />
 </CaseStudy>

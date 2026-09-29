@@ -1,13 +1,30 @@
 ---
 import CaseStudy from '../../layouts/CaseStudy.astro';
 import Claim from '../../components/Claim.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import TemperatureDemo from '../../components/TemperatureDemo.astro';
 import { commitUrl, evidence, type ClaimId } from '../../data/claims';
 
 const sources: ClaimId[] = [
   'cf.split', 'cf.val.n', 'cf.test.n', 'cf.valMacroF1', 'cf.val.macroF1Recomputed', 'cf.test.macroF1',
   'cf.val.melRecall', 'cf.test.melRecall', 'cf.val.melPrecision', 'cf.test.melPrecision',
   'cf.test.melFp', 'cf.test.melFpNv', 'cf.latency.explain', 'cf.latency.fast',
+  'cf.temperature', 'cf.ece.before', 'cf.ece.after',
 ];
+const toc = [
+  { id: 'what', label: 'What it does' },
+  { id: 'results', label: 'Results' },
+  { id: 'silent', label: 'The silent failure' },
+  { id: 'calibration', label: 'Calibration' },
+  { id: 'latency', label: 'Latency' },
+  { id: 'limits', label: 'Limits' },
+  { id: 'reproduce', label: 'Reproduce the test numbers' },
+];
+const bug = `state = torch.load("models/best_model.pth")   # stale, image-only
+model.load_state_dict(state, strict=False)     # mismatched weights skipped, no error`;
+const fixed = `result = model.load_state_dict(state, strict=False)
+print(f"missing={len(result.missing_keys)} "
+      f"unexpected={len(result.unexpected_keys)}")`;
 const fix = commitUrl(evidence.cfCollapseFix.repo, evidence.cfCollapseFix.sha);
 const loud = commitUrl(evidence.cfSilentLoad.repo, evidence.cfSilentLoad.sha);
 const temperature = commitUrl(evidence.cfTemperature.repo, evidence.cfTemperature.sha);
@@ -20,9 +37,10 @@ const temperature = commitUrl(evidence.cfTemperature.repo, evidence.cfTemperatur
   stack={['PyTorch', 'ResNet50', 'Grad-CAM', 'FastAPI', 'React']}
   links={[{ label: 'Code', href: 'https://github.com/Avnish1505/cancer-fusion-ai' }]}
   sources={sources}
+  toc={toc}
   ogImage="/og/cancer-fusion.png"
 >
-  <h2>What it does</h2>
+  <h2 id="what">What it does</h2>
   <p>
     The model takes a dermoscopy image plus three pieces of patient metadata: age, sex and lesion location. ResNet50 image
     features and the metadata go through a small MLP head that predicts one of seven lesion types. It is trained on HAM10000,
@@ -33,7 +51,7 @@ const temperature = commitUrl(evidence.cfTemperature.repo, evidence.cfTemperatur
     the same lesion on both sides, which inflates validation scores without making the model any better.
   </p>
 
-  <h2>Results</h2>
+  <h2 id="results">Results</h2>
   <p>
     The repository reports validation macro-F1, and the validation set is the one used to choose the checkpoint, so that number
     flatters the model a little. I recomputed the metrics on the held-out test set from the logits committed in the repository.
@@ -65,31 +83,45 @@ const temperature = commitUrl(evidence.cfTemperature.repo, evidence.cfTemperatur
     be used on patients.
   </p>
 
-  <h2>The silent failure</h2>
+  <h2 id="silent">The silent failure</h2>
   <p>
     For a while the model predicted the same class for every image, and nothing raised an error. The loader used <code>strict=False</code> and was loading a stale image-only checkpoint into the fusion model. Weights that did not match were
     skipped without a word, and the predictions collapsed.
   </p>
+  <CodeBlock code={bug} label="the shape of the bug" del={[2]} />
+  <CodeBlock code={fixed} label="the loud version" add={[2, 3]} />
+  <p class="small muted"><span class="illustrative">Illustrative.</span> <code>load_state_dict</code> returns the missing and unexpected keys. With <code>strict=False</code> nobody reads them unless you ask.</p>
   <p>
     The fix had two parts: <a href={fix}>track the correct fusion checkpoint and drop the stale one</a>, and <a href={loud}>make loading print missing and unexpected key counts instead of failing silently</a>. The same commit removed a
     leak in how the metadata scaler was fitted.
   </p>
 
-  <h2>Latency</h2>
+  <h2 id="calibration">Calibration</h2>
+  <p>
+    A classifier's softmax output is often more confident than it is right. Temperature scaling divides every logit by one number,
+    <em>T</em>, before the softmax. I <a href={temperature}>fitted it on the validation set</a> by minimising negative log-likelihood,
+    never on the test set, and got <em>T</em> = <Claim id="cf.temperature" />.
+  </p>
+  <TemperatureDemo />
+  <p>
+    On the test set the fitted value is very slightly worse on expected calibration error than an older hand-picked T = 2.5, and better on
+    log-likelihood. I kept the fitted one because it was chosen by a rule on data the test set never saw.
+  </p>
+
+  <h2 id="latency">Latency</h2>
   <p>
     I profiled inference phase by phase. The backward pass for Grad-CAM dominated each request, so I put explanations behind an
     opt-in flag. When no explanation is needed, local latency drops from <Claim id="cf.latency.explain" /> to <Claim id="cf.latency.fast" /> per request. These are local measurements on one CPU worker, not production numbers.
   </p>
-  <p>Predicted probabilities are calibrated with a temperature <a href={temperature}>fitted on the validation set</a>.</p>
 
-  <h2>Limits</h2>
+  <h2 id="limits">Limits</h2>
   <ul>
     <li>There is no always-on public demo.</li>
     <li>One dataset from a research collection, so performance on other populations and cameras is unknown.</li>
     <li>The training and validation accuracy figures in the project README come from a past run and cannot be reproduced from the repository. The README says so.</li>
   </ul>
 
-  <h2>Reproduce the test numbers</h2>
-  <pre><code>pip install numpy
-python scripts/derive/cancer_fusion_metrics.py   # in this site's repository</code></pre>
+  <h2 id="reproduce">Reproduce the test numbers</h2>
+  <CodeBlock lang="bash" label="in this site's repository" code={`pip install numpy
+python scripts/derive/cancer_fusion_metrics.py`} />
 </CaseStudy>

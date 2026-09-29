@@ -11,19 +11,30 @@ interface Props {
   stack: string[];
   links: { label: string; href: string }[];
   sources: ClaimId[];
+  toc: { id: string; label: string }[];
   ogImage?: string;
 }
 
-const { title, dek, description, year, stack, links, sources, ogImage } = Astro.props;
+const { title, dek, description, year, stack, links, sources, toc, ogImage } = Astro.props;
 ---
 <Base title={title} description={description} ogImage={ogImage}>
-  <article>
-    <header>
+  <article class="case">
+    <aside class="toc" aria-label="On this page">
+      <nav>
+        <p class="toc-title">On this page</p>
+        <ol>
+          {toc.map((t) => <li><a href={`#${t.id}`}>{t.label}</a></li>)}
+          <li><a href="#sources">Where the numbers come from</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <header class="case-head">
       <p class="crumb"><a href="/#work">Selected work</a></p>
+      <p class="year">{year}</p>
       <h1>{title}</h1>
       <p class="dek">{dek}</p>
       <dl class="facts">
-        <div><dt>Year</dt><dd>{year}</dd></div>
         <div><dt>Built with</dt><dd>{stack.join(', ')}</dd></div>
       </dl>
       <ul class="links">
@@ -38,36 +49,51 @@ const { title, dek, description, year, stack, links, sources, ogImage } = Astro.
 </Base>
 
 <style>
+  .case {
+    position: relative;
+  }
   .crumb {
-    font-family: var(--sans);
-    font-size: 0.9rem;
-    margin-bottom: 1.25rem;
+    font-size: 0.92rem;
+    margin-bottom: 0.4rem;
   }
   .crumb a {
-    color: var(--muted);
+    color: var(--text-dim);
     text-decoration: none;
   }
+  .crumb a::before {
+    content: '← ';
+  }
   .crumb a:hover {
-    color: var(--ink);
+    color: var(--text);
+  }
+  .year {
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: clamp(3.2rem, 9vw, 5rem);
+    line-height: 0.9;
+    color: var(--yellow);
+    margin: 0.4rem 0 0.2rem;
+    transform: rotate(-4deg);
+    transform-origin: left bottom;
+    display: inline-block;
   }
   h1 {
     font-size: clamp(2.1rem, 1.5rem + 3vw, 3.1rem);
     line-height: 1.06;
     letter-spacing: -0.024em;
-    font-weight: 660;
+    font-weight: 750;
   }
   .dek {
     font-size: 1.2rem;
     line-height: 1.5;
     margin: 0.9rem 0 1.6rem;
-    color: var(--muted);
+    color: var(--text-dim);
   }
   .facts {
     display: grid;
     gap: 0.3rem;
     margin: 0 0 1rem;
-    font-family: var(--sans);
-    font-size: 0.9rem;
+    font-size: 0.92rem;
   }
   .facts div {
     display: grid;
@@ -75,16 +101,27 @@ const { title, dek, description, year, stack, links, sources, ogImage } = Astro.
     gap: 1rem;
   }
   .facts dt {
-    color: var(--muted);
+    color: var(--text-faint);
   }
   .facts dd {
     margin: 0;
   }
   .prose {
-    margin-top: 2.5rem;
+    margin-top: 2.75rem;
   }
   .prose :global(h2) {
-    margin: 2.9rem 0 0.9rem;
+    margin: 3.2rem 0 0.9rem;
+    scroll-margin-top: calc(var(--topbar-h) + 20px);
+  }
+  .prose :global(h2::after) {
+    content: '';
+    display: block;
+    width: 3.5rem;
+    height: 3px;
+    margin-top: 0.45rem;
+    border-radius: 2px;
+    background: var(--yellow);
+    opacity: 0.7;
   }
   .prose :global(ul) {
     max-width: var(--measure);
@@ -95,33 +132,107 @@ const { title, dek, description, year, stack, links, sources, ogImage } = Astro.
     margin-bottom: 0.45rem;
   }
   .prose :global(li::marker) {
-    color: var(--muted);
+    color: var(--text-faint);
   }
   .prose :global(.table-scroll) {
     overflow-x: auto;
     margin: 1rem 0 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-raised);
   }
   .prose :global(.table-scroll table) {
-    font-family: var(--sans);
+    width: 100%;
     font-size: 0.92rem;
     min-width: 24rem;
   }
   .prose :global(.table-scroll th),
   .prose :global(.table-scroll td) {
     text-align: left;
-    padding: 0.5rem 1.4rem 0.5rem 0;
-    border-bottom: 1px solid var(--rule);
+    padding: 9px 14px;
+    border-top: 1px solid var(--line);
     vertical-align: top;
   }
-  .prose :global(.table-scroll thead th) {
-    color: var(--muted);
-    font-weight: 500;
+  .prose :global(.table-scroll thead th),
+  .prose :global(.table-scroll thead td) {
+    color: var(--text-dim);
+    font-weight: 650;
     font-size: 0.84rem;
+    background: var(--bg-sunk);
+    border-top: 0;
   }
   .prose :global(.table-scroll tbody th) {
     font-weight: 500;
   }
-  .prose :global(pre) {
-    margin: 1rem 0 1.5rem;
+  .prose :global(.table-scroll .lose) {
+    color: var(--rose);
+  }
+  .prose :global(.table-scroll .win) {
+    color: var(--mint);
+  }
+
+  /* Contents: a sticky list in the right margin on wide screens only. */
+  .toc {
+    display: none;
+  }
+  @media (min-width: 80rem) {
+    .toc {
+      display: block;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: calc(100% + 3rem);
+      width: 13.5rem;
+    }
+    .toc nav {
+      position: sticky;
+      top: calc(var(--topbar-h) + 28px);
+    }
+  }
+  .toc-title {
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--text-faint);
+    margin: 0 0 0.4rem;
+  }
+  .toc ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-left: 1px solid var(--line);
+    font-size: 0.86rem;
+    line-height: 1.35;
+  }
+  .toc a {
+    display: block;
+    padding: 5px 0 5px 12px;
+    margin-left: -1px;
+    color: var(--text-faint);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+  }
+  .toc a:hover {
+    color: var(--text);
+  }
+  .toc a.active {
+    color: var(--text);
+    border-left-color: var(--yellow);
   }
 </style>
+
+<script>
+  // Highlight the section being read.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>('.toc a')];
+  const targets = links
+    .map((a) => document.getElementById(decodeURIComponent(a.hash.slice(1))))
+    .filter((el): el is HTMLElement => !!el);
+  if (links.length && 'IntersectionObserver' in window) {
+    const setActive = (id: string) => links.forEach((a) => a.classList.toggle('active', a.hash === `#${id}`));
+    const io = new IntersectionObserver(() => {
+      const current = targets.filter((t) => t.getBoundingClientRect().top < innerHeight * 0.35).pop();
+      if (current) setActive(current.id);
+    }, { rootMargin: '0px 0px -60% 0px' });
+    targets.forEach((t) => io.observe(t));
+  }
+</script>

@@ -1,0 +1,92 @@
+---
+import Claim from './Claim.astro';
+
+interface Props {
+  /** Show the full table instead of the compact strip. */
+  table?: boolean;
+}
+
+// The 13 fault classes and their expected checks, from reports/fault_injection.md at the pinned commit.
+const classes = [
+  { k: 'understated_travel_time', fault: 'Longest ETA halved', check: 'travel_time_matches', blocks: true },
+  { k: 'phantom_unit', fault: 'Unit ID not in the scenario', check: 'unit_exists', blocks: true },
+  { k: 'duplicate_unit', fault: 'Same unit assigned twice', check: 'unit_not_duplicated', blocks: true },
+  { k: 'unavailable_unit', fault: 'Offline unit swapped in', check: 'unit_available', blocks: true },
+  { k: 'wrong_capability', fault: 'Unit of an unneeded type', check: 'capability_match', blocks: true },
+  { k: 'over_assignment', fault: 'Extra unit beyond the requirement', check: 'quantity_within_requirement', blocks: true },
+  { k: 'dropped_critical_incident', fault: 'Critical incident silently removed', check: 'critical_incidents_accounted', blocks: true },
+  { k: 'plan_worse_than_optimum', fault: 'One assignment dropped, declared unmet', check: 'objective_within_tolerance', blocks: false },
+  { k: 'fabricated_citation_id', fault: 'Citation of evidence never retrieved', check: 'citations_retrieved', blocks: true },
+  { k: 'citation_missing_quote', fault: 'Quote not in the cited evidence', check: 'citation_quotes_present', blocks: true },
+  { k: 'sitrep_number_mismatch', fault: 'One report ETA changed by 7.3 min', check: 'draft_numbers_match_state', blocks: true },
+  { k: 'approval_flag_removed', fault: 'Human approval flag set to false', check: 'human_approval_required', blocks: true },
+  { k: 'prompt_injection_in_report', fault: 'Instruction appended to a report', check: 'no_instruction_injection', blocks: false },
+];
+const { table = false } = Astro.props;
+---
+{table ? (
+  <div class="table-scroll no-pop">
+    <table>
+      <thead>
+        <tr><th scope="col">Injected fault</th><th scope="col">Check that must fail</th><th scope="col">Caught</th><th scope="col">Blocks the plan</th></tr>
+      </thead>
+      <tbody>
+        {classes.map((c) => (
+          <tr>
+            <td>{c.fault}</td>
+            <td><code>{c.check}</code></td>
+            <td class="win">50/50</td>
+            <td>{c.blocks ? 'yes' : 'no, shown as a finding'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+) : (
+  <figure class="fig strip">
+    <p class="fig-title">Faults injected into the verifier</p>
+    <ol class="cells" aria-label="Fault classes, all caught">
+      {classes.map((c) => (
+        <li class="cell" title={`${c.fault}: caught by ${c.check}`}>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10.5 L8.5 15 L16 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="sr-only">{c.fault}, caught by {c.check}</span>
+        </li>
+      ))}
+    </ol>
+    <figcaption>
+      <Claim id="ae.fi.classes" /> fault classes caught on every scenario, <Claim id="ae.fi.faults" /> injected faults in all,
+      and <Claim id="ae.fi.falseBlocks" /> clean solver plans blocked by mistake. The faults come from mutators written alongside the
+      verifier, so this shows each check works. It is not an attack on a live model.
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .cells {
+    list-style: none;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(13, minmax(0, 1fr));
+    gap: 6px;
+    max-width: 34rem;
+  }
+  .cell {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    border: 1.5px solid color-mix(in srgb, var(--mint) 60%, transparent);
+    background: var(--ok-bg);
+    color: var(--mint);
+  }
+  .cell svg {
+    width: 70%;
+    height: 70%;
+  }
+  @media (max-width: 30rem) {
+    .cells {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+  }
+</style>

@@ -8,31 +8,68 @@ interface Props {
 const c = claims[Astro.props.id];
 const label = sourceLabel(c.source);
 ---
-<a class="claim" href={sourceUrl(c.source)} title={`${c.label}. Source: ${label}`}>{c.value}<span class="sr">, source: {label}</span></a>
+<a class="claim" href={sourceUrl(c.source)}>{c.value}<span class="sr-only">, {c.label}. Source: {label}</span><span class="pop" aria-hidden="true"><span class="pop-label">{c.label}</span><span class="pop-src">{label}</span></span></a>
 
 <style>
   .claim {
+    position: relative;
+    color: inherit;
     text-decoration: none;
     white-space: nowrap;
     font-variant-numeric: tabular-nums lining-nums;
-    background-image: linear-gradient(var(--mark), var(--mark));
-    background-size: 100% 0.2em;
-    background-position: 0 92%;
-    background-repeat: no-repeat;
-    padding-inline: 0.04em;
+    /* a highlighter swipe, not an underline */
+    background: linear-gradient(transparent 56%, var(--mark) 56%, var(--mark) 94%, transparent 94%);
+    padding-inline: 0.08em;
+    border-radius: 2px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+    transition: background-color 120ms;
   }
   .claim:hover,
   .claim:focus-visible {
-    background-image: linear-gradient(var(--mark-soft), var(--mark-soft));
-    background-size: 100% 100%;
-    box-shadow: inset 0 -0.2em 0 var(--mark);
+    background: var(--mark-strong);
   }
-  .sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+  .pop {
+    display: none;
+  }
+  @media (hover: hover) {
+    .claim:hover .pop,
+    .claim:focus-visible .pop {
+      display: grid;
+      gap: 4px;
+      position: absolute;
+      z-index: 20;
+      left: var(--pop-shift, -0.5rem);
+      bottom: calc(100% + 10px);
+      width: max-content;
+      max-width: min(20rem, 80vw);
+      padding: 10px 12px;
+      white-space: normal;
+      text-align: left;
+      background: var(--bg-raised);
+      border: 1px solid var(--line-strong);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      font-family: var(--serif);
+      font-size: 0.8rem;
+      font-weight: 400;
+      line-height: 1.4;
+      color: var(--text);
+      letter-spacing: 0;
+      pointer-events: none;
+      animation: pop-in 120ms ease-out;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+  }
+  .pop-src {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    overflow-wrap: anywhere;
   }
 </style>

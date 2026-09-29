@@ -21,6 +21,11 @@ export const commits = {
   omitbenchBlog: 'ed0ee642f03386bab2fcd2da605253e9215e9699',
   aegisops: 'd1839cd456166e720f0354fb5c6be63752b2a794',
   cancerFusion: 'a5699d2e2167f357d8035fad2b51b9bf4b391ee5',
+  // Later commits, pinned when the site was updated on 29 Sep 2026.
+  omitbenchB7: '03cddf997584a246b5c68a757f69ad703001a0be',
+  aegisopsSolver: '5e81f3a7440495df397cd81ece468a9f92cf821a',
+  cancerFusionCal: 'e97ee49862249cad6e13d9157d79cf862970db1f',
+  agentgrade: '03ea9101e42ae8be3d0632258c366a403d80ee77',
 } as const;
 
 type LineSource = { kind: 'line'; repo: string; sha: string; path: string; line: number; match: string };
@@ -45,6 +50,10 @@ const OB = (n: number, match: string) => line('Omitbench', commits.omitbench, 'R
 const OBB = (n: number, match: string) => line('omitbench-engineering-blog', commits.omitbenchBlog, 'README.md', n, match);
 const AE = (path: string, n: number, match: string) => line('aegisops-ai', commits.aegisops, path, n, match);
 const CF = (n: number, match: string) => line('cancer-fusion-ai', commits.cancerFusion, 'README.md', n, match);
+const OB7 = (n: number, match: string) => line('Omitbench', commits.omitbenchB7, 'README.md', n, match);
+const AES = (path: string, n: number, match: string) => line('aegisops-ai', commits.aegisopsSolver, path, n, match);
+const CFC = (n: number, match: string) => line('cancer-fusion-ai', commits.cancerFusionCal, 'README.md', n, match);
+const AG = (n: number, match: string) => line('agentgrade', commits.agentgrade, 'README.md', n, match);
 
 const CF_DERIVED = (derivation: string, split: 'val' | 'test'): DerivedSource => ({
   kind: 'derived',
@@ -96,12 +105,20 @@ export const claims = {
   'ob.gate.fired': { value: '8 seconds', label: 'time for the gate to comment on a live demo PR', source: OBB(267, 'The workflow fired in **8 seconds**') },
   'ob.gate.p95': { value: '26.5 ms', label: 'gate p95 latency per instance', source: OBB(269, 'p95 **26.5ms** per instance') },
   'ob.gate.precision': { value: '0.8018', label: 'P1 precision at the last gate check (bar 0.8)', source: OB(299, 'P1 precision 0.8018') },
-  'ob.tests': { value: '132', label: 'tests passing', source: OBB(269, '132/132 tests passing') },
+  'ob.tests': { value: '155', label: 'tests in make test: 147 unit tests and 8 leakage guards', source: OB7(412, '155 tests (147 unit + 8 leakage guards)') },
+
+  'ob.b7.delta': { value: '−0.259', label: 'paired ΔMCC, B7 (Jev, split questions) − B5', source: OB7(346, '-0.259 [-0.316,-0.203]') },
+  'ob.b7.deltaCi': { value: '[−0.316, −0.203]', label: '95% CI of B7 − B5', source: OB7(346, '-0.259 [-0.316,-0.203]') },
+  'ob.b7.auroc': { value: '0.936', label: 'AUROC, B7 (Jev, split questions)', source: OB7(362, '| 0.323 | 0.936 |') },
+  'ob.b7.ece': { value: '0.323', label: 'expected calibration error, B7 (Jev, split questions)', source: OB7(362, '| 0.323 | 0.936 |') },
+  'ob.b7.eceBar': { value: '0.05', label: 'pre-registered ECE bar for "calibrated"', source: OB7(356, 'ECE<=0.05 False') },
+  'ob.recall.absent.b5': { value: '0.84', label: 'B5 recall on ABSENT omissions', source: OB7(395, '| B5 LLM judge (mid-tier) | 0.84 | 0.21 | 0.87 |') },
+  'ob.recall.unwired.b5': { value: '0.21', label: 'B5 recall on UNWIRED omissions (n=19)', source: OB7(395, '| B5 LLM judge (mid-tier) | 0.84 | 0.21 | 0.87 |') },
+  'ob.recall.stub.b5': { value: '0.87', label: 'B5 recall on STUB omissions', source: OB7(395, '| B5 LLM judge (mid-tier) | 0.84 | 0.21 | 0.87 |') },
 
   'ob.mcc.flagAll': { value: '0.000', label: 'MCC of flag-everything', source: OB(46, '**0.000** | [0.000, 0.000] | 1.000') },
   'ob.recall.other.p1': { value: '0.00', label: 'P1 recall on UNWIRED and on STUB', source: OB(104, '| **0.96** | 0.00 | 0.00 |') },
   'ob.gate.bar': { value: '0.8', label: 'precision bar the gate must clear', source: OB(299, '(threshold 0.8)') },
-  'ae.report.scenarios': { value: '30', label: 'seeded scenarios in the committed experiment report', source: AE('reports/phase_4_experiment_report.json', 4, '--end-seed 30') },
 
   // ── Implementation Integrity Analyzer (inside AegisOps AI) ────────────────
   'iia.scenarios': { value: '15', label: 'benchmark scenarios', source: AE('README.md', 69, '15 scenarios: 5 true-positive') },
@@ -112,25 +129,37 @@ export const claims = {
   'iia.precision': { value: '0.556', label: 'analyzer precision', source: AE('README.md', 82, '0.556') },
   'iia.recall': { value: '0.833', label: 'analyzer recall', source: AE('README.md', 83, '0.833') },
   'iia.mcc': { value: '0.389', label: 'analyzer MCC', source: AE('README.md', 84, '0.389') },
+  'iia.base.tp': { value: '0', label: 'true positives, string-presence baseline', source: AE('README.md', 78, '| True positives  | 0              | 5        |') },
+  'iia.base.fp': { value: '0', label: 'false positives, string-presence baseline', source: AE('README.md', 79, '| False positives | 0              | 4        |') },
+  'iia.base.fn': { value: '6', label: 'false negatives, string-presence baseline', source: AE('README.md', 80, '| False negatives | 6              | 1        |') },
+  'iia.base.tn': { value: '9', label: 'true negatives, string-presence baseline', source: AE('README.md', 81, '| True negatives  | 9              | 5        |') },
 
   'ae.tests': {
     value: '121',
     label: 'AegisOps tests passing (pytest, run at this commit on 16 Sep 2026)',
     source: { kind: 'file', repo: 'aegisops-ai', sha: commits.aegisops, path: 'tests', tree: true },
   },
-  'ae.model': { value: 'Llama 3.1 8B', label: 'LLM used by the decision engine', source: AE('aegisops/infrastructure/llm_decision_engine.py', 28, 'meta/llama-3.1-8b-instruct') },
-  'ae.roles': { value: 'not running agents yet', label: 'status of the four agent roles', source: AE('backend/agents/roles.py', 3, 'They are data, not executable agents') },
-  'ae.report.fallback': {
-    value: 'blocked path every time',
-    label: 'LLM engine behaviour in the committed 30-scenario report (no API key set)',
-    source: AE('reports/phase_4_experiment_report.json', 5, 'exercised its blocked-fallback path for every scenario'),
-  },
+
+  // ── AegisOps, after the solver rework ────────────────────────────────────
+  'ae.fi.classes': { value: '13/13', label: 'fault classes caught on every scenario', source: AES('reports/fault_injection.md', 7, '**13/13**') },
+  'ae.fi.faults': { value: '650/650', label: 'injected faults caught by the verifier', source: AES('reports/fault_injection.md', 8, '**650/650**') },
+  'ae.fi.falseBlocks': { value: '0/50', label: 'clean solver plans falsely blocked', source: AES('reports/fault_injection.md', 9, '**0/50**') },
+  'ae.verifier.checks': { value: '19', label: 'deterministic checks every plan goes through', source: AES('docs/STATUS.md', 13, 'goes through 19 deterministic checks') },
+  'ae.unmetPenalty': { value: '10_000', label: 'penalty in minutes per unit of unmet demand', source: AES('aegisops/planning/objective.py', 20, 'UNMET_PENALTY_MINUTES = 10_000.0') },
+
+  // ── AgentGrade ───────────────────────────────────────────────────────────
+  'ag.sessions': { value: '93', label: 'test sessions run against the agent (23 in Phase 3, 70 in Phase 5)', source: AG(40, 'across 93 total test sessions') },
+  'ag.gateCalls': { value: 'zero times', label: 'times the deterministic return-window check ran', source: AG(41, 'was invoked zero times') },
+  'ag.p95': { value: '6349.2 ms', label: 'p95 round trip per case, session open to close', source: AG(37, '6349.2 ms (p50: 4900.3 ms)') },
 
   // ── Cancer Fusion AI ─────────────────────────────────────────────────────
   'cf.valMacroF1': { value: '0.726', label: 'best validation macro-F1 (checkpoint selection set)', source: CF(170, 'Best validation macro-F1 | **0.726**') },
   'cf.split': { value: 'lesion_id', label: 'split key', source: CF(81, 'stratified split **by `lesion_id`**') },
   'cf.latency.explain': { value: '~100 ms', label: 'local /predict latency with Grad-CAM', source: CF(237, '**~100ms**') },
   'cf.latency.fast': { value: '~31 ms', label: 'local /predict latency with explain=false', source: CF(237, '**~31ms**') },
+  'cf.temperature': { value: '2.1235', label: 'temperature fitted on the validation set by NLL minimisation', source: CFC(240, 'T=2.1235 (fitted on validation via NLL minimization, current)') },
+  'cf.ece.before': { value: '0.1217', label: 'test ECE before temperature scaling (T = 1)', source: CFC(238, '| T=1.0 (uncalibrated) | 0.1217') },
+  'cf.ece.after': { value: '0.0297', label: 'test ECE at the fitted temperature', source: CFC(240, 'current)** | 0.0297') },
 
   'cf.test.n': { value: '1,543', label: 'held-out test images', source: CF_DERIVED('Row count of the committed test labels.', 'test') },
   'cf.test.macroF1': { value: '0.712', label: 'test macro-F1', source: CF_DERIVED('Argmax of committed test logits, per-class F1, unweighted mean over 7 classes.', 'test') },

@@ -1,0 +1,74 @@
+---
+import { Code } from 'astro:components';
+
+interface Props {
+  code: string;
+  lang?: string;
+  /** A short handwritten label on the tab above the code, e.g. a filename. */
+  label?: string;
+  /** Lines to mark as added (mint) or removed (rose), 1-based. */
+  add?: number[];
+  del?: number[];
+  /** Lines to mark as the one that matters (yellow). */
+  hot?: number[];
+}
+
+const { code, lang = 'python', label, add = [], del = [], hot = [] } = Astro.props;
+
+const mark = {
+  name: 'line-marks',
+  line(node: { properties: Record<string, unknown> }, n: number) {
+    const cls = add.includes(n) ? 'ln-add' : del.includes(n) ? 'ln-del' : hot.includes(n) ? 'ln-hot' : null;
+    if (cls) node.properties.class = `${node.properties.class ?? ''} ${cls}`.trim();
+  },
+};
+---
+<div class="codeblock">
+  {label && <div class="tab">{label}</div>}
+  <Code code={code.replace(/^\n/, '').replace(/\s+$/, '')} lang={lang as never} theme="css-variables" transformers={[mark as never]} />
+</div>
+
+<style>
+  .codeblock {
+    margin: 1.1rem 0 1.5rem;
+  }
+  .tab {
+    display: inline-block;
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--text-dim);
+    padding: 6px 12px 5px;
+    background: var(--code-bg);
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 8px 8px 0 0;
+    position: relative;
+    top: 1px;
+  }
+  .codeblock :global(pre) {
+    margin: 0;
+  }
+  .tab + :global(pre) {
+    border-top-left-radius: 0;
+  }
+  .codeblock :global(.line) {
+    display: inline-block;
+    min-width: 100%;
+    padding-inline: 16px;
+    margin-inline: -16px;
+  }
+  .codeblock :global(.ln-add) {
+    background: var(--ok-bg);
+    box-shadow: inset 3px 0 0 var(--mint);
+  }
+  .codeblock :global(.ln-del) {
+    background: var(--no-bg);
+    box-shadow: inset 3px 0 0 var(--rose);
+  }
+  .codeblock :global(.ln-hot) {
+    background: var(--mark);
+    box-shadow: inset 3px 0 0 var(--yellow);
+  }
+</style>

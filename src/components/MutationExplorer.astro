@@ -1,0 +1,174 @@
+---
+import CodeBlock from './CodeBlock.astro';
+import Claim from './Claim.astro';
+import type { ClaimId } from '../data/claims';
+
+// Illustrative code, not taken from the corpus. It shows the shape of each mutation.
+const patch = `
+def validate_token(token) -> bool:
+    return hmac.compare_digest(sign(token.payload), token.sig)
+
+def login(request):
+    token = parse(request)
+    if not validate_token(token):
+        raise PermissionError("bad token")
+    return start_session(token)
+`;
+
+const absent = `
+# validate_token's definition was deleted
+
+def login(request):
+    token = parse(request)
+    if not validate_token(token):
+        raise PermissionError("bad token")
+    return start_session(token)
+`;
+
+const unwired = `
+def validate_token(token) -> bool:
+    return hmac.compare_digest(sign(token.payload), token.sig)
+
+def login(request):
+    token = parse(request)
+    return start_session(token)          # the check is never called
+`;
+
+const stub = `
+def validate_token(token) -> bool:
+    return True                          # the body is hollow
+
+def login(request):
+    token = parse(request)
+    if not validate_token(token):
+        raise PermissionError("bad token")
+    return start_session(token)
+`;
+
+type Tab = {
+  key: string;
+  label: string;
+  code: string;
+  hot?: number[];
+  del?: number[];
+  what: string;
+  defined: string;
+  p1?: ClaimId;
+  b5?: ClaimId;
+};
+
+const tabs: Tab[] = [
+  { key: 'patch', label: 'The finished patch', code: patch, what: 'What the commit really did: define a check, then call it before the session starts.', defined: 'Yes' },
+  { key: 'absent', label: 'ABSENT', code: absent, hot: [1], del: [5], what: 'The definition is deleted. The call site stays.', defined: 'No, so P1 flags it', p1: 'ob.recall.absent.p1', b5: 'ob.recall.absent.b5' },
+  { key: 'unwired', label: 'UNWIRED', code: unwired, hot: [1, 2], del: [6], what: 'The definition stays. Every call to it is gone, so it reads as finished and never runs.', defined: 'Yes, so P1 passes it', p1: 'ob.recall.other.p1', b5: 'ob.recall.unwired.b5' },
+  { key: 'stub', label: 'STUB', code: stub, del: [2], what: 'The definition and the call stay. The body is hollowed out.', defined: 'Yes, so P1 passes it', p1: 'ob.recall.other.p1', b5: 'ob.recall.stub.b5' },
+];
+---
+<figure class="fig mx" id="mutation-explorer">
+  <p class="fig-title">One patch, three ways to leave something out</p>
+  <div class="tabs" role="tablist" aria-label="Mutation class">
+    {tabs.map((t, i) => (
+      <button type="button" role="tab" class="btn" id={`mx-tab-${t.key}`} aria-controls={`mx-panel-${t.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1} data-key={t.key}>
+        {t.label}
+      </button>
+    ))}
+  </div>
+  {tabs.map((t) => (
+    <section class="panel" role="tabpanel" id={`mx-panel-${t.key}`} aria-labelledby={`mx-tab-${t.key}`} data-key={t.key}>
+      <h3 class="panel-title">{t.label}</h3>
+      <p class="what">{t.what}</p>
+      <CodeBlock code={t.code} label="auth.py" hot={t.hot} del={t.del} />
+      <dl class="verdict">
+        <div><dt>Is <code>validate_token</code> defined?</dt><dd>{t.defined}</dd></div>
+        {t.p1 && t.b5 && (
+          <div class="rec"><dt>Recall on this class</dt><dd>P1 <Claim id={t.p1} />, mid-tier judge <Claim id={t.b5} /></dd></div>
+        )}
+      </dl>
+    </section>
+  ))}
+  <figcaption>
+    <span class="illustrative">Illustrative code, not from the corpus.</span>{' '}
+    P1 asks one question, whether the symbol is defined. That is why it is near-perfect on ABSENT and blind to the other two by construction.
+    UNWIRED has only <Claim id="ob.unwired.n" /> instances, so that column is directional.
+  </figcaption>
+</figure>
+
+<style>
+  .tabs {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 0.9rem;
+  }
+  .mx.js .tabs {
+    display: flex;
+  }
+  .panel + .panel {
+    margin-top: 1.5rem;
+  }
+  .mx.js .panel + .panel {
+    margin-top: 0;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 0 0 0.3rem;
+  }
+  .mx.js .panel-title {
+    display: none;
+  }
+  .what {
+    margin: 0 0 0.2rem;
+    font-size: 0.97rem;
+  }
+  .verdict {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    font-size: 0.92rem;
+  }
+  .verdict div {
+    display: grid;
+    grid-template-columns: 13rem 1fr;
+    gap: 12px;
+  }
+  .verdict dt {
+    color: var(--text-dim);
+  }
+  .verdict dd {
+    margin: 0;
+    font-weight: 600;
+  }
+  @media (max-width: 34rem) {
+    .verdict div {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+  }
+</style>
+
+<script>
+  const root = document.getElementById('mutation-explorer');
+  if (root) {
+    root.classList.add('js');
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const select = (i: number, focus = false) => {
+      tabs.forEach((t, j) => {
+        t.setAttribute('aria-selected', String(i === j));
+        t.tabIndex = i === j ? 0 : -1;
+      });
+      panels.forEach((p, j) => (p.hidden = i !== j));
+      if (focus) tabs[i].focus();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i));
+      t.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') select((i + 1) % tabs.length, true);
+        if (e.key === 'ArrowLeft') select((i - 1 + tabs.length) % tabs.length, true);
+      });
+    });
+    select(0);
+  }
+</script>

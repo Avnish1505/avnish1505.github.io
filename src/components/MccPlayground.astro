@@ -1,0 +1,400 @@
+---
+import { claims } from '../data/claims';
+
+// Presets come from pinned claims where the numbers are real.
+const n = (id: keyof typeof claims) => Number(claims[id].value);
+const presets = [
+  {
+    key: 'all',
+    label: 'Flag everything',
+    note: '100 items at OmitBench’s 27.9% base rate',
+    tp: 28, fn: 0, fp: 72, tn: 0,
+  },
+  {
+    key: 'coin',
+    label: 'Flip a coin',
+    note: 'same 100 items, half flagged at random',
+    tp: 14, fn: 14, fp: 36, tn: 36,
+  },
+  {
+    key: 'iia',
+    label: 'Integrity analyzer',
+    note: 'its 15 benchmark scenarios',
+    tp: n('iia.tp'), fn: n('iia.fn'), fp: n('iia.fp'), tn: n('iia.tn'),
+  },
+  {
+    key: 'name',
+    label: 'Name search',
+    note: 'the baseline on the same 15 scenarios',
+    tp: n('iia.base.tp'), fn: n('iia.base.fn'), fp: n('iia.base.fp'), tn: n('iia.base.tn'),
+  },
+];
+const start = presets[0];
+const cells = [
+  { key: 'tp', name: 'TP', desc: 'caught', cls: 'good', v: start.tp },
+  { key: 'fn', name: 'FN', desc: 'missed', cls: 'bad', v: start.fn },
+  { key: 'fp', name: 'FP', desc: 'false alarm', cls: 'bad', v: start.fp },
+  { key: 'tn', name: 'TN', desc: 'left alone', cls: 'good', v: start.tn },
+];
+---
+<figure class="fig mccp" id="mcc-playground" data-presets={JSON.stringify(presets)}>
+  <p class="fig-title">F1 against MCC, live</p>
+
+  <div class="presets" role="group" aria-label="Load an example">
+    {presets.map((p, i) => (
+      <button type="button" class="btn" data-preset={p.key} aria-pressed={i === 0 ? 'true' : 'false'}>{p.label}</button>
+    ))}
+  </div>
+  <p class="preset-note faint small" aria-live="polite">{start.note}</p>
+
+  <div class="grid">
+    <div class="matrix" role="group" aria-label="Confusion matrix">
+      <span class="ax ax-top" aria-hidden="true">flagged</span>
+      <span class="ax ax-top2" aria-hidden="true">not flagged</span>
+      <span class="ax ax-side" aria-hidden="true">has a failure</span>
+      <span class="ax ax-side2" aria-hidden="true">is correct</span>
+      {cells.map((c) => (
+        <label class:list={['cell', c.cls, `c-${c.key}`]}>
+          <span class="cell-name"><b>{c.name}</b> {c.desc}</span>
+          <span class="stepper">
+            <button type="button" class="step" data-step="-1" data-cell={c.key} aria-label={`One fewer ${c.name}`}>−</button>
+            <input type="number" inputmode="numeric" min="0" max="999" value={c.v} data-cell={c.key} aria-label={`${c.name}, ${c.desc}`} />
+            <button type="button" class="step" data-step="1" data-cell={c.key} aria-label={`One more ${c.name}`}>+</button>
+          </span>
+        </label>
+      ))}
+    </div>
+
+    <div class="readouts">
+      <div class="meter">
+        <div class="meter-head"><span>F1</span><output data-out="f1">0.44</output></div>
+        <div class="track f1"><span class="fill" data-bar="f1"></span></div>
+        <div class="scale" aria-hidden="true"><span>0</span><span>1</span></div>
+      </div>
+      <div class="meter">
+        <div class="meter-head"><span>MCC</span><output data-out="mcc">0.000</output></div>
+        <div class="track mcc"><span class="zero"></span><span class="fill" data-bar="mcc"></span></div>
+        <div class="scale" aria-hidden="true"><span>−1</span><span>0</span><span>1</span></div>
+      </div>
+      <p class="pr small muted">Precision <output data-out="p">0.28</output>, recall <output data-out="r">1.00</output></p>
+      <p class="verdict" data-out="verdict" aria-live="polite">F1 looks respectable. MCC says it is no better than guessing.</p>
+    </div>
+  </div>
+
+  <div class="formula">
+    <math display="block" aria-label="MCC equals TP times TN minus FP times FN, over the square root of the product of TP plus FP, TP plus FN, TN plus FP and TN plus FN">
+      <mrow>
+        <mi>MCC</mi><mo>=</mo>
+        <mfrac>
+          <mrow><mi class="m-good">TP</mi><mo>·</mo><mi class="m-good">TN</mi><mo>−</mo><mi class="m-bad">FP</mi><mo>·</mo><mi class="m-bad">FN</mi></mrow>
+          <msqrt><mrow><mo stretchy="false">(</mo><mi>TP</mi><mo>+</mo><mi>FP</mi><mo stretchy="false">)</mo><mo stretchy="false">(</mo><mi>TP</mi><mo>+</mo><mi>FN</mi><mo stretchy="false">)</mo><mo stretchy="false">(</mo><mi>TN</mi><mo>+</mo><mi>FP</mi><mo stretchy="false">)</mo><mo stretchy="false">(</mo><mi>TN</mi><mo>+</mo><mi>FN</mi><mo stretchy="false">)</mo></mrow></msqrt>
+        </mfrac>
+      </mrow>
+    </math>
+    <math display="block" aria-label="F1 equals 2 TP over 2 TP plus FP plus FN">
+      <mrow>
+        <mi>F1</mi><mo>=</mo>
+        <mfrac>
+          <mrow><mn>2</mn><mi>TP</mi></mrow>
+          <mrow><mn>2</mn><mi>TP</mi><mo>+</mo><mi>FP</mi><mo>+</mo><mi>FN</mi></mrow>
+        </mfrac>
+      </mrow>
+    </math>
+    <math display="block" class="live" aria-hidden="true">
+      <mrow>
+        <mi>MCC</mi><mo>=</mo>
+        <mfrac>
+          <mrow><mn data-m="tp">28</mn><mo>·</mo><mn data-m="tn">0</mn><mo>−</mo><mn data-m="fp">72</mn><mo>·</mo><mn data-m="fn">0</mn></mrow>
+          <msqrt><mrow><mn data-m="a">100</mn><mo>·</mo><mn data-m="b">28</mn><mo>·</mo><mn data-m="c">72</mn><mo>·</mo><mn data-m="d">0</mn></mrow></msqrt>
+        </mfrac>
+        <mo>=</mo><mn data-m="mcc">0</mn>
+      </mrow>
+    </math>
+  </div>
+
+  <figcaption>
+    F1 never looks at true negatives, so a detector that flags everything still gets credit.
+    MCC uses all four cells and is 0 for anything that does no better than chance. When a whole row or column is empty
+    the denominator is zero, MCC is undefined, and the usual convention scores it 0. That is why every headline on this site is MCC.
+  </figcaption>
+</figure>
+
+<style>
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .preset-note {
+    margin: 0.5rem 0 1rem;
+    min-height: 1.4em;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 24px;
+    align-items: start;
+  }
+  .matrix {
+    display: grid;
+    grid-template-columns: 1.4rem 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr;
+    gap: 6px;
+  }
+  .ax {
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--text-faint);
+    text-align: center;
+  }
+  .ax-top { grid-column: 2; grid-row: 1; }
+  .ax-top2 { grid-column: 3; grid-row: 1; }
+  .ax-side, .ax-side2 {
+    grid-column: 1;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    align-self: center;
+  }
+  .ax-side { grid-row: 2; }
+  .ax-side2 { grid-row: 3; }
+  .c-tp { grid-column: 2; grid-row: 2; }
+  .c-fn { grid-column: 3; grid-row: 2; }
+  .c-fp { grid-column: 2; grid-row: 3; }
+  .c-tn { grid-column: 3; grid-row: 3; }
+  .cell {
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--line-strong);
+    background: var(--bg);
+  }
+  .cell.good { border-color: color-mix(in srgb, var(--mint) 55%, transparent); }
+  .cell.bad { border-color: color-mix(in srgb, var(--rose) 55%, transparent); }
+  .cell-name {
+    font-size: 0.8rem;
+    line-height: 1.2;
+    color: var(--text-dim);
+  }
+  .cell-name b {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .good .cell-name b { color: var(--mint); }
+  .bad .cell-name b { color: var(--rose); }
+  .stepper {
+    display: grid;
+    grid-template-columns: 1.9rem 1fr 1.9rem;
+    align-items: center;
+    gap: 4px;
+  }
+  .step {
+    height: 1.9rem;
+    border-radius: 7px;
+    border: 1px solid var(--line-strong);
+    background: transparent;
+    color: var(--text-dim);
+    font: 600 1rem/1 var(--serif);
+    cursor: pointer;
+  }
+  .step:hover {
+    color: var(--text);
+    background: var(--bg-raised);
+  }
+  .stepper input {
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+    font: 600 1.25rem/1.2 var(--serif);
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px dashed var(--line-strong);
+    padding: 2px 0;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .stepper input::-webkit-outer-spin-button,
+  .stepper input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .readouts {
+    display: grid;
+    gap: 14px;
+  }
+  .meter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 650;
+  }
+  .meter-head output {
+    font-variant-numeric: tabular-nums;
+    font-size: 1.3rem;
+  }
+  .track {
+    position: relative;
+    height: 12px;
+    margin-top: 4px;
+    border-radius: 6px;
+    background: var(--bg-sunk);
+    border: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    background: var(--sky);
+    transition: left 180ms ease, width 180ms ease;
+  }
+  .mcc .fill {
+    background: var(--yellow);
+  }
+  .mcc .fill.neg {
+    background: var(--rose);
+  }
+  .zero {
+    position: absolute;
+    left: 50%;
+    top: -2px;
+    bottom: -2px;
+    width: 1px;
+    background: var(--text-faint);
+    z-index: 1;
+  }
+  .scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .pr {
+    margin: 0;
+  }
+  .pr output {
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+  .verdict {
+    margin: 0;
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.3rem;
+    line-height: 1.15;
+    color: var(--yellow);
+  }
+  .formula {
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line-strong);
+    overflow-x: auto;
+  }
+  .formula :global(.m-good) { color: var(--mint); }
+  .formula :global(.m-bad) { color: var(--rose); }
+  .live {
+    color: var(--text-dim);
+    font-size: 0.98em;
+  }
+  @media (max-width: 40rem) {
+    .grid {
+      grid-template-columns: 1fr;
+    }
+    .formula :global(math) {
+      font-size: 0.8em;
+    }
+  }
+</style>
+
+<script>
+  const root = document.getElementById('mcc-playground');
+  if (root) {
+    type Counts = { tp: number; fn: number; fp: number; tn: number };
+    type Preset = Counts & { key: string; label: string; note: string };
+    const presets: Preset[] = JSON.parse(root.dataset.presets ?? '[]');
+    const inputs = [...root.querySelectorAll<HTMLInputElement>('input[data-cell]')];
+    const q = (sel: string) => root.querySelector<HTMLElement>(sel);
+    const fmt = (x: number, d: number) => (Object.is(x, -0) ? 0 : x).toFixed(d).replace('-', '−');
+
+    const read = (): Counts => {
+      const c = { tp: 0, fn: 0, fp: 0, tn: 0 } as Counts;
+      for (const el of inputs) {
+        const v = Math.max(0, Math.min(999, Math.round(Number(el.value) || 0)));
+        c[el.dataset.cell as keyof Counts] = v;
+      }
+      return c;
+    };
+
+    const render = () => {
+      const { tp, fn, fp, tn } = read();
+      const a = tp + fp, b = tp + fn, c = tn + fp, d = tn + fn;
+      const den = Math.sqrt(a * b * c * d);
+      const mcc = den === 0 ? 0 : (tp * tn - fp * fn) / den;
+      const f1den = 2 * tp + fp + fn;
+      const f1 = f1den === 0 ? 0 : (2 * tp) / f1den;
+      const p = a === 0 ? null : tp / a;
+      const r = b === 0 ? null : tp / b;
+
+      q('[data-out="f1"]')!.textContent = fmt(f1, 2);
+      q('[data-out="mcc"]')!.textContent = den === 0 ? 'undefined → 0' : fmt(mcc, 3);
+      q('[data-out="p"]')!.textContent = p === null ? 'undefined' : fmt(p, 2);
+      q('[data-out="r"]')!.textContent = r === null ? 'undefined' : fmt(r, 2);
+
+      const f1bar = q('[data-bar="f1"]')!;
+      f1bar.style.width = `${f1 * 100}%`;
+      const mbar = q('[data-bar="mcc"]')!;
+      mbar.style.left = `${mcc >= 0 ? 50 : 50 + mcc * 50}%`;
+      mbar.style.width = `${Math.abs(mcc) * 50}%`;
+      mbar.classList.toggle('neg', mcc < 0);
+
+      const set = (k: string, v: string) => { const el = root.querySelector(`[data-m="${k}"]`); if (el) el.textContent = v; };
+      set('tp', String(tp)); set('tn', String(tn)); set('fp', String(fp)); set('fn', String(fn));
+      set('a', String(a)); set('b', String(b)); set('c', String(c)); set('d', String(d));
+      set('mcc', den === 0 ? 'undefined' : fmt(mcc, 3));
+
+      let verdict: string;
+      if (den === 0) verdict = 'A whole row or column is empty. MCC is undefined, and scores 0.';
+      else if (mcc < -0.05) verdict = 'Worse than chance. Flip its answers and it gets better.';
+      else if (Math.abs(mcc) <= 0.05 && f1 >= 0.3) verdict = 'F1 looks respectable. MCC says it is no better than guessing.';
+      else if (Math.abs(mcc) <= 0.05) verdict = 'No better than guessing, and both scores say so.';
+      else if (mcc >= 0.6) verdict = 'Strong on both classes.';
+      else verdict = 'Better than chance, with room to improve.';
+      if (den === 0 && f1 >= 0.3) verdict = 'F1 looks respectable. MCC is undefined, which is scored 0: no better than guessing.';
+      q('[data-out="verdict"]')!.textContent = verdict;
+    };
+
+    const setPressed = (key: string | null) => {
+      root.querySelectorAll<HTMLButtonElement>('[data-preset]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.preset === key)));
+      const note = q('.preset-note');
+      if (note) note.textContent = presets.find((p) => p.key === key)?.note ?? 'your own numbers';
+    };
+
+    root.addEventListener('click', (e) => {
+      const t = (e.target as HTMLElement).closest<HTMLButtonElement>('button');
+      if (!t) return;
+      if (t.dataset.preset) {
+        const p = presets.find((x) => x.key === t.dataset.preset);
+        if (!p) return;
+        for (const el of inputs) el.value = String(p[el.dataset.cell as keyof Counts]);
+        setPressed(p.key);
+        render();
+      } else if (t.dataset.step) {
+        const el = inputs.find((i) => i.dataset.cell === t.dataset.cell);
+        if (!el) return;
+        el.value = String(Math.max(0, Math.min(999, (Number(el.value) || 0) + Number(t.dataset.step))));
+        setPressed(null);
+        render();
+      }
+    });
+    for (const el of inputs) el.addEventListener('input', () => { setPressed(null); render(); });
+    render();
+  }
+</script>

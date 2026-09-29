@@ -7,33 +7,35 @@ interface Props {
 
 const items = [...new Set(Astro.props.ids)].map((id) => ({ id, ...claims[id] }));
 ---
-<section class="sources" aria-labelledby="sources-heading">
+<section class="sources" id="sources" aria-labelledby="sources-heading">
   <h2 id="sources-heading">Where each number comes from</h2>
   <p class="muted small">
-    Links point to a fixed commit, so they keep showing the same evidence even after the project changes.
+    Links point to a fixed commit, so they keep showing the same evidence after the project moves on.
     A check in this site's CI downloads each file and fails the build if a number no longer matches.
   </p>
-  <table>
-    <thead>
-      <tr><th scope="col">Value</th><th scope="col">What it is</th><th scope="col">Evidence</th></tr>
-    </thead>
-    <tbody>
-      {items.map((c) => (
-        <tr>
-          <td class="v">{c.value}</td>
-          <td>{c.label}</td>
-          <td><a href={sourceUrl(c.source)}>{sourceLabel(c.source)}</a>{c.source.kind === 'derived' && <span class="muted"> ({c.source.derivation} Script: <code>{c.source.script}</code>)</span>}</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th scope="col">Value</th><th scope="col">What it is</th><th scope="col">Evidence</th></tr>
+      </thead>
+      <tbody>
+        {items.map((c) => (
+          <tr>
+            <td class="v">{c.value}</td>
+            <td>{c.label}</td>
+            <td><a href={sourceUrl(c.source)}>{sourceLabel(c.source)}</a>{c.source.kind === 'derived' && <span class="muted"> ({c.source.derivation} Script: <code>{c.source.script}</code>)</span>}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 </section>
 
 <style>
   .sources {
-    margin-top: 4rem;
+    margin-top: 4.5rem;
     padding-top: 2rem;
-    border-top: 1px solid var(--rule);
+    border-top: 1px dashed var(--line-strong);
   }
   h2 {
     margin-bottom: 0.6rem;
@@ -41,28 +43,39 @@ const items = [...new Set(Astro.props.ids)].map((id) => ({ id, ...claims[id] }))
   .sources > p {
     margin-bottom: 1.25rem;
   }
-  table {
-    display: block;
+  .scroll {
     overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-raised);
+  }
+  table {
     width: 100%;
-    font-family: var(--sans);
+    min-width: 36rem;
     font-size: 0.84rem;
     line-height: 1.45;
   }
   th {
     text-align: left;
-    font-weight: 600;
-    color: var(--muted);
-    padding: 0 1rem 0.5rem 0;
+    font-weight: 650;
+    color: var(--text-dim);
+    padding: 10px 14px;
+    background: var(--bg-sunk);
   }
   td {
-    padding: 0.45rem 1rem 0.45rem 0;
+    padding: 8px 14px;
     vertical-align: top;
-    border-top: 1px solid var(--rule);
+    border-top: 1px solid var(--line);
   }
   .v {
     white-space: nowrap;
-    font-weight: 600;
+    font-weight: 700;
+    color: var(--yellow);
+  }
+  td a {
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
   }
   code {
     font-size: 0.95em;
