@@ -7,7 +7,7 @@ import Pipeline from '../../components/Pipeline.astro';
 import type { ClaimId } from '../../data/claims';
 
 const sources: ClaimId[] = [
-  'ae.verifier.checks', 'ae.fi.classes', 'ae.fi.faults', 'ae.fi.falseBlocks', 'ae.unmetPenalty',
+  'ae.verifier.checks', 'ae.fi.classes', 'ae.fi.faults', 'ae.fi.falseBlocks', 'ae.unmetPenalty', 'ae.tests.now',
 ];
 const toc = [
   { id: 'what', label: 'What it is' },
@@ -125,6 +125,7 @@ const toc = [
   </p>
 
   <h2 id="reproduce">Reproduce</h2>
+  <p>At the linked commit, <Claim id="ae.tests.now" /> tests pass. Lint, types, a PostGIS job, the console's tests and a Playwright run with axe accessibility checks also run in CI.</p>
   <CodeBlock lang="bash" label="terminal" code={`git clone https://github.com/Avnish1505/aegisops-ai
 cd aegisops-ai
 pip install -r requirements-dev.txt

@@ -36,7 +36,7 @@ CASES = {
     "omitbench": ("OmitBench", "A benchmark for silent omissions in coding-agent patches.", "−0.202", "MCC against a mid-tier LLM judge, and I kept it as the headline"),
     "integrity-analyzer": ("Implementation Integrity Analyzer", "Static analysis for safety checks that AI-generated code defines but never runs.", "0.389", "MCC on 15 scenarios, where a name search catches nothing"),
     "aegisops": ("AegisOps", "Crisis-response planning where a solver allocates, a model reads, and a person approves.", "650/650", "injected faults caught by the plan verifier"),
-    "cancer-fusion": ("Cancer Fusion AI", "A skin lesion classifier that combines dermoscopy images with patient metadata.", "0.712", "macro-F1 on 1,543 held-out test images"),
+    "cancer-fusion": ("Cancer Fusion AI", "A skin-lesion classifier that lost seven points on someone else's test set, and the rebuild that got them back.", "0.653 → 0.782", "balanced accuracy on the ISIC 2018 test set"),
 }
 
 

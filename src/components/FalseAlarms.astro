@@ -1,0 +1,106 @@
+---
+import Claim from './Claim.astro';
+import { claims, type ClaimId } from '../data/claims';
+
+// Per ten cancers caught, rounded to whole lesions for drawing. The real ratios are the claims.
+const rows: { name: string; ratio: ClaimId; spec: ClaimId; sens: ClaimId }[] = [
+  { name: 'v1', ratio: 'cf2.v1.fpPerTp', spec: 'cf2.v1.spec', sens: 'cf2.v1.sens' },
+  { name: 'v2', ratio: 'cf2.v2.fpPerTp', spec: 'cf2.v2.spec', sens: 'cf2.v2.sens' },
+];
+---
+<figure class="fig fa">
+  <p class="fig-title">False alarms for every ten cancers caught</p>
+  <div class="legend small" aria-hidden="true">
+    <span><i class="tp"></i>malignant lesion caught</span>
+    <span><i class="fp"></i>benign lesion flagged as well</span>
+  </div>
+  {rows.map((r) => {
+    const per10 = Math.round(Number(claims[r.ratio].value) * 10);
+    return (
+      <div class="row">
+        <p class="who"><b>{r.name}</b> <span class="faint small">sensitivity <Claim id={r.sens} />, specificity <Claim id={r.spec} /></span></p>
+        <div class="dots" role="img" aria-label={`${r.name}: about ${per10} benign lesions flagged for every 10 cancers caught`}>
+          {Array.from({ length: 10 }, () => <span class="d tp" />)}
+          <span class="gap" />
+          {Array.from({ length: per10 }, () => <span class="d fp" />)}
+        </div>
+        <p class="ratio"><Claim id={r.ratio} /> <span class="hand">benign per cancer</span></p>
+      </div>
+    );
+  })}
+  <figcaption>
+    On the ISIC 2018 test set, with each model's threshold fitted on its own validation data to catch 95% of cancers, then left alone.
+    Dots are rounded to whole lesions. At about the same sensitivity, v2 sends half as many people with benign lesions for a second look.
+  </figcaption>
+</figure>
+
+<style>
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    color: var(--text-dim);
+    margin-bottom: 0.6rem;
+  }
+  .legend i {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: -1px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 16px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px dashed var(--line-strong);
+  }
+  .who {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-items: center;
+  }
+  .d,
+  .legend i {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+  }
+  .d.tp,
+  .legend i.tp {
+    background: var(--mint);
+  }
+  .d.fp,
+  .legend i.fp {
+    background: transparent;
+    border: 2px solid var(--rose);
+  }
+  .gap {
+    width: 10px;
+  }
+  .ratio {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .ratio .hand {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-faint);
+  }
+  @media (max-width: 34rem) {
+    .row {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

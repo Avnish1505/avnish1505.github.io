@@ -17,18 +17,30 @@ export const papers = {
 
 export const posts = [
   {
+    key: 'cancerFusion',
+    title: 'The model that failed away from home',
+    date: 'October 2026',
+    href: 'https://avnish1505.github.io/Cancer-Fusion-AI-blog/',
+    summary: 'Why my skin-lesion classifier lost seven points on the ISIC 2018 test set, the fix that only moved the errors, and the rebuild that took external balanced accuracy from 0.653 to 0.782.',
+  },
+  {
+    key: 'omitbench',
     title: 'The detector that lost: building OmitBench',
     date: 'August 2026',
     href: 'https://avnish1505.github.io/omitbench-engineering-blog/',
     summary: "A benchmark for silent omissions in AI-agent code patches, and the measurements that didn't flatter it.",
   },
   {
+    key: 'aegisops',
     title: 'Building AegisOps AI: engineering a human-supervised crisis decision-support platform',
     date: 'August 2026, updated September 2026',
     href: 'https://avnish1505.github.io/aegisops-ai-blog/',
     summary: 'Ports and adapters, LLM output validated against the real scenario, and a deterministic safety layer that has the final say before a human does.',
   },
 ] as const;
+
+export type PostKey = (typeof posts)[number]['key'];
+export const post = (key: PostKey) => posts.find((p) => p.key === key)!;
 
 export const earlier = [
   {
