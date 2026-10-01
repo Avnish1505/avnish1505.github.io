@@ -43,6 +43,7 @@ npm run build          # output in dist/
 | Interactive figures | `src/components/MccPlayground.astro`, `MutationExplorer.astro`, `TemperatureDemo.astro`, `Pipeline.astro` |
 | Code blocks | `src/components/CodeBlock.astro` (Shiki, coloured by CSS variables) |
 | Link preview cards | `python scripts/og.py` (needs Pillow; numbers in it are copied from claims.ts) |
+| Résumé | `resume/resume.html`, then `python scripts/resume.py` (writes `public/resume.pdf` without the phone number; set `RESUME_PHONE` and pass an output path for the private copy) |
 | Cancer Fusion test metrics | `python scripts/derive/cancer_fusion_metrics.py` (needs numpy) |
 
 The résumé link appears on its own once `public/resume.pdf` exists.
@@ -57,6 +58,5 @@ This repo is a GitHub *user site* (`avnish1505.github.io`), so it deploys at the
 
 ## Before it goes live
 
-- `public/resume.pdf` still describes the old AegisOps (an LLM allocating units), calls Cancer Fusion "deployed", says
-  "132 tests" and "arXiv submission pending". Replace it with a version that matches this site.
 - Keep the old URLs alive and redirect them here instead of deleting them.
+- When a project moves on, update its claims and the résumé together, so the two never disagree.

@@ -3,125 +3,217 @@ import CaseStudy from '../../layouts/CaseStudy.astro';
 import Claim from '../../components/Claim.astro';
 import CodeBlock from '../../components/CodeBlock.astro';
 import TemperatureDemo from '../../components/TemperatureDemo.astro';
+import HomeAway from '../../components/HomeAway.astro';
+import FalseAlarms from '../../components/FalseAlarms.astro';
 import { commitUrl, evidence, type ClaimId } from '../../data/claims';
+import { post } from '../../data/content';
 
 const sources: ClaimId[] = [
-  'cf.split', 'cf.val.n', 'cf.test.n', 'cf.valMacroF1', 'cf.val.macroF1Recomputed', 'cf.test.macroF1',
-  'cf.val.melRecall', 'cf.test.melRecall', 'cf.val.melPrecision', 'cf.test.melPrecision',
-  'cf.test.melFp', 'cf.test.melFpNv', 'cf.latency.explain', 'cf.latency.fast',
-  'cf.temperature', 'cf.ece.before', 'cf.ece.after',
+  'cf2.v1.homeBA', 'cf2.v1.awayBA', 'cf2.v2.homeBA', 'cf2.v2.awayBA', 'cf2.best2018',
+  'cf2.v2.delta', 'cf2.v2.deltaCi', 'cf2.v1.homeMelAUC', 'cf2.v2.homeMelAUC', 'cf2.v1.melAUC', 'cf2.v2.melAUC',
+  'cf2.v1.malAUC', 'cf2.v2.malAUC', 'cf2.melRecall.deltaCi',
+  'cf2.offsets.first', 'cf2.offsets.median',
+  'cf2.imgOnly.awayBA', 'cf2.fusion.vsImg', 'cf2.fusion.vsImgCi', 'cf2.fusion.noForm', 'cf2.fusion.form', 'cf2.fusion.formCi',
+  'cf2.v1.sens', 'cf2.v2.sens', 'cf2.v1.spec', 'cf2.v2.spec', 'cf2.v1.fpPerTp', 'cf2.v2.fpPerTp',
+  'cf2.v2.coverage', 'cf2.v1.setSize', 'cf2.v2.setSize', 'cf2.v2.ece',
+  'cf.split', 'cf.test.n', 'cf.test.macroF1',
+  'cf.temperature', 'cf.ece.before', 'cf.ece.after', 'cf.latency.explain', 'cf.latency.fast',
 ];
 const toc = [
   { id: 'what', label: 'What it does' },
-  { id: 'results', label: 'Results' },
+  { id: 'away', label: 'The test it failed' },
+  { id: 'audit', label: 'Reading my own code' },
+  { id: 'offsets', label: 'The cheap fix that wasn’t' },
+  { id: 'v2', label: 'v2' },
+  { id: 'flag', label: 'The malignant flag' },
+  { id: 'fusion', label: 'Does the metadata earn the name?' },
   { id: 'silent', label: 'The silent failure' },
   { id: 'calibration', label: 'Calibration' },
   { id: 'latency', label: 'Latency' },
-  { id: 'limits', label: 'Limits' },
-  { id: 'reproduce', label: 'Reproduce the test numbers' },
+  { id: 'limits', label: 'What this doesn’t show' },
+  { id: 'reproduce', label: 'Reproduce' },
 ];
+const blog = post('cancerFusion');
 const bug = `state = torch.load("models/best_model.pth")   # stale, image-only
 model.load_state_dict(state, strict=False)     # mismatched weights skipped, no error`;
 const fixed = `result = model.load_state_dict(state, strict=False)
 print(f"missing={len(result.missing_keys)} "
       f"unexpected={len(result.unexpected_keys)}")`;
+const meta = `# v1: "unknown" is one more category, learned from a few rows that are all benign
+sex_onehot = one_hot(sex, ["female", "male", "unknown"])
+
+# v2: missing is a flag, and training blanks each field at random
+vec = [age_scaled, age_missing, *sex_onehot, sex_missing, *site_onehot, site_missing]`;
 const fix = commitUrl(evidence.cfCollapseFix.repo, evidence.cfCollapseFix.sha);
 const loud = commitUrl(evidence.cfSilentLoad.repo, evidence.cfSilentLoad.sha);
 const temperature = commitUrl(evidence.cfTemperature.repo, evidence.cfTemperature.sha);
 ---
 <CaseStudy
   title="Cancer Fusion AI"
-  dek="A skin lesion classifier that combines dermoscopy images with patient metadata, evaluated as a triage filter."
-  description="A multimodal skin lesion classifier on HAM10000, with held-out test metrics, a silent checkpoint failure and its fix, and Grad-CAM latency work."
+  dek="A skin-lesion classifier that lost seven points on someone else's test set, and the rebuild that got them back."
+  description="A skin-lesion classifier on HAM10000: external validation on ISIC 2018 exposed a drop, a decision-threshold fix only moved the errors, and a rebuilt v2 raised external balanced accuracy from 0.653 to 0.782."
   year="2026"
-  stack={['PyTorch', 'ResNet50', 'Grad-CAM', 'FastAPI', 'React']}
-  links={[{ label: 'Code', href: 'https://github.com/Avnish1505/cancer-fusion-ai' }]}
+  stack={['PyTorch', 'timm', 'EfficientNetV2-S', 'ResNet50', 'conformal prediction', 'temperature scaling', 'Grad-CAM', 'FastAPI', 'React']}
+  links={[
+    { label: 'Write-up', href: blog.href },
+    { label: 'Code', href: 'https://github.com/Avnish1505/cancer-fusion-ai' },
+  ]}
   sources={sources}
   toc={toc}
   ogImage="/og/cancer-fusion.png"
 >
   <h2 id="what">What it does</h2>
   <p>
-    The model takes a dermoscopy image plus three pieces of patient metadata: age, sex and lesion location. ResNet50 image
-    features and the metadata go through a small MLP head that predicts one of seven lesion types. It is trained on HAM10000,
-    about ten thousand images.
+    The model sorts a dermoscopy image into one of the seven lesion classes in HAM10000, from harmless moles to melanoma, and can
+    also take the patient's age, sex and lesion site. Around it sits a safety layer: calibrated probabilities, a conformal set of
+    classes that should contain the true one 90% of the time, a malignant flag tuned to catch 95% of cancers, and a guard that
+    refuses images that do not look like dermoscopy. Every threshold is fitted on validation data and tied to the checkpoint's hash.
   </p>
   <p>
-    The split is by <Claim id="cf.split" />, not by image. Some lesions have several photos, and an image-level split would put
-    the same lesion on both sides, which inflates validation scores without making the model any better.
+    The split is by <Claim id="cf.split" />, not by image. Some lesions have several photos, and an image-level split would put the
+    same lesion on both sides. It is a research and learning project, not a medical device, and it should not be used on patients.
   </p>
 
-  <h2 id="results">Results</h2>
+  <h2 id="away">The test it failed</h2>
   <p>
-    The repository reports validation macro-F1, and the validation set is the one used to choose the checkpoint, so that number
-    flatters the model a little. I recomputed the metrics on the held-out test set from the logits committed in the repository.
+    Version 1 was a ResNet50 at 224 pixels. On its own held-out split of <Claim id="cf.test.n" /> images it reached macro-F1 <Claim id="cf.test.macroF1" /> and balanced accuracy <Claim id="cf2.v1.homeBA" />. Then I ran it on the official ISIC 2018 Task 3
+    test set, 1,511 images checked against the training data for shared image IDs, shared lesion IDs and identical files.
+    Balanced accuracy fell to <Claim id="cf2.v1.awayBA" />.
+  </p>
+  <HomeAway />
+  <p>
+    The safety layer was doing its job. It was putting honest error bars on a classifier that was not good enough. Everything
+    after this point was about the classifier.
+  </p>
+
+  <h2 id="audit">Reading my own code</h2>
+  <p>Before retraining anything, I read the code the way a reviewer would. Three things changed how I saw the metadata half of the project.</p>
+  <ul>
+    <li>
+      <strong>The API invented a patient.</strong> The form fields defaulted to age 50, male, back, and the frontend pre-filled the
+      same values. Anyone who skipped the form got a prediction for a person who does not exist. The fields are now required,
+      "unknown" is accepted when someone chooses it, and every response echoes the metadata it used.
+    </li>
+    <li>
+      <strong>"Unknown" was a diagnosis hint.</strong> In HAM10000 the rows with sex recorded as unknown are moles and benign keratoses,
+      not one malignant, so a model that treats "unknown" as an ordinary category can learn it as a vote for benign. v1 had no safe default at all.
+    </li>
+    <li>
+      <strong>The metadata sees part of the answer.</strong> Age, sex and site alone, in a logistic regression, beat chance by a wide
+      margin. That signal is real, and it is also the kind of dataset habit that may not travel to another clinic.
+    </li>
+  </ul>
+  <CodeBlock code={meta} label="the change, simplified" del={[2]} add={[5]} />
+
+  <h2 id="offsets">The cheap fix that wasn't</h2>
+  <p>
+    The cheapest way to raise balanced accuracy is to leave the model alone and shift its decision rule: one offset per class,
+    fitted on validation logits, with melanoma recall not allowed to fall. The first fit took ISIC 2018 balanced accuracy to <Claim id="cf2.offsets.first" />.
+  </p>
+  <p>
+    Refitting the same offsets on 20 bootstrap resamples of the validation set gave a median gain of <Claim id="cf2.offsets.median" />. The first
+    result had been luck, and it cost several points of accuracy and melanoma precision. Offsets decide which mistakes you make.
+    They cannot change how well the model ranks a melanoma above a mole, which is exactly what AUC measures, so the ceiling was in
+    the features. I did not ship them.
+  </p>
+
+  <h2 id="v2">v2</h2>
+  <p>
+    v2 sits next to v1 in the repository and uses exactly the same split, so the two can be compared image by image. It changes the
+    classifier and keeps the safety layer.
   </p>
   <div class="table-scroll">
     <table>
       <thead>
-        <tr><td></td><th scope="col">Validation</th><th scope="col">Test</th></tr>
+        <tr><td></td><th scope="col">v1</th><th scope="col">v2</th></tr>
       </thead>
       <tbody>
-        <tr><th scope="row">Images</th><td><Claim id="cf.val.n" /></td><td><Claim id="cf.test.n" /></td></tr>
-        <tr><th scope="row">Macro-F1</th><td><Claim id="cf.valMacroF1" /></td><td><Claim id="cf.test.macroF1" /></td></tr>
-        <tr><th scope="row">Melanoma recall</th><td><Claim id="cf.val.melRecall" /></td><td><Claim id="cf.test.melRecall" /></td></tr>
-        <tr><th scope="row">Melanoma precision</th><td><Claim id="cf.val.melPrecision" /></td><td><Claim id="cf.test.melPrecision" /></td></tr>
+        <tr><th scope="row">Backbone</th><td>ResNet50</td><td>EfficientNetV2-S, ImageNet-21k</td></tr>
+        <tr><th scope="row">Input</th><td>224 px, squashed from 600 × 450</td><td>384 px crops, aspect kept</td></tr>
+        <tr><th scope="row">Colour</th><td>as captured</td><td>Shades of Gray colour constancy</td></tr>
+        <tr><th scope="row">At test time</th><td>one view</td><td>logits averaged over 8 flips and rotations</td></tr>
+        <tr><th scope="row">Class weights</th><td>1/n</td><td>1/√n</td></tr>
+        <tr><th scope="row">Optimiser</th><td>AdamW, constant rate</td><td>warmup, cosine decay, mixed precision, EMA weights</td></tr>
+        <tr><th scope="row">Metadata</th><td>"unknown" as a category</td><td>missing flags, fields dropped at random in training</td></tr>
+        <tr><th scope="row">Checkpoint chosen by</th><td>validation macro-F1</td><td>validation balanced accuracy</td></tr>
       </tbody>
     </table>
   </div>
   <p>
-    Recomputing validation macro-F1 from the same logits gives <Claim id="cf.val.macroF1Recomputed" />, matching the value stored
-    in the shipped checkpoint, which is how I know the logits came from that model.
+    It trained on a free Kaggle T4 in about three minutes an epoch. On ISIC 2018 balanced accuracy went from <Claim id="cf2.v1.awayBA" /> to <Claim id="cf2.v2.awayBA" />,
+    a paired gain of <Claim id="cf2.v2.delta" /> with an interval of <Claim id="cf2.v2.deltaCi" />. Every comparison is paired: both models scored on the
+    same 1,511 images, with a bootstrap interval on the difference.
   </p>
   <p>
-    I report macro-F1 rather than accuracy because benign nevi are about two thirds of the data, and a model can score well on
-    accuracy while failing the rare classes.
+    The AUCs matter more to me than the headline, because they are the ranking itself improving, the one thing the offsets could
+    not touch. Melanoma AUC rose from <Claim id="cf2.v1.melAUC" /> to <Claim id="cf2.v2.melAUC" />, and malignant-versus-benign AUC from <Claim id="cf2.v1.malAUC" /> to <Claim id="cf2.v2.malAUC" />.
+    Melanoma recall also went up, but its interval, <Claim id="cf2.melRecall.deltaCi" />, crosses zero, so I do not claim it.
+  </p>
+
+  <h2 id="flag">The malignant flag</h2>
+  <p>
+    I refitted the safety layer for v2 from validation data only and applied it to ISIC 2018 unchanged. At nearly the same
+    sensitivity, specificity rose from <Claim id="cf2.v1.spec" /> to <Claim id="cf2.v2.spec" />.
+  </p>
+  <FalseAlarms />
+  <p>
+    The conformal sets kept their promise on data they had never seen, covering the true class <Claim id="cf2.v2.coverage" /> of the time
+    against a 0.90 target, while getting smaller: <Claim id="cf2.v2.setSize" /> classes on average instead of <Claim id="cf2.v1.setSize" />.
+    v2's sensitivity sits slightly under its 0.95 target, and its interval still includes it.
+  </p>
+
+  <h2 id="fusion">Does the metadata earn the name?</h2>
+  <p>
+    I trained an image-only ablation with everything else identical. It scored <Claim id="cf2.imgOnly.awayBA" /> on ISIC 2018, and fusion beat it by <Claim id="cf2.fusion.vsImg" />, interval <Claim id="cf2.fusion.vsImgCi" />.
   </p>
   <p>
-    Melanoma precision is low. On the test set the model flags <Claim id="cf.test.melFp" /> images as melanoma that are not, and <Claim id="cf.test.melFpNv" /> of those are benign nevi. A missed melanoma costs more than an unnecessary referral, so that
-    trade-off is defensible for a triage filter and not for a diagnosis. The model is not clinically validated and should not
-    be used on patients.
+    Most of that gap does not come from the form. With all metadata withheld, the fusion model still scores <Claim id="cf2.fusion.noForm" />.
+    Giving the form back adds <Claim id="cf2.fusion.form" />, with an interval of <Claim id="cf2.fusion.formCi" /> that crosses zero. Either training with metadata
+    and field dropout made the image branch better, or the image-only run drew an unlucky seed. With one finished run of each I cannot
+    separate the two yet, and I would rather say that than call it a fusion win.
   </p>
 
   <h2 id="silent">The silent failure</h2>
   <p>
-    For a while the model predicted the same class for every image, and nothing raised an error. The loader used <code>strict=False</code> and was loading a stale image-only checkpoint into the fusion model. Weights that did not match were
+    Earlier, v1 predicted the same class for every image and nothing raised an error. The loader used <code>strict=False</code> and was loading a stale image-only checkpoint into the fusion model. Weights that did not match were
     skipped without a word, and the predictions collapsed.
   </p>
   <CodeBlock code={bug} label="the shape of the bug" del={[2]} />
   <CodeBlock code={fixed} label="the loud version" add={[2, 3]} />
   <p class="small muted"><span class="illustrative">Illustrative.</span> <code>load_state_dict</code> returns the missing and unexpected keys. With <code>strict=False</code> nobody reads them unless you ask.</p>
   <p>
-    The fix had two parts: <a href={fix}>track the correct fusion checkpoint and drop the stale one</a>, and <a href={loud}>make loading print missing and unexpected key counts instead of failing silently</a>. The same commit removed a
-    leak in how the metadata scaler was fitted.
+    The fix had two parts: <a href={fix}>track the correct fusion checkpoint and drop the stale one</a>, and <a href={loud}>make loading print missing and unexpected key counts instead of failing silently</a>.
   </p>
 
   <h2 id="calibration">Calibration</h2>
   <p>
-    A classifier's softmax output is often more confident than it is right. Temperature scaling divides every logit by one number,
-    <em>T</em>, before the softmax. I <a href={temperature}>fitted it on the validation set</a> by minimising negative log-likelihood,
-    never on the test set, and got <em>T</em> = <Claim id="cf.temperature" />.
+    A softmax output is often more confident than it is right. Temperature scaling divides every logit by one number, <em>T</em>, before
+    the softmax. For v1 I <a href={temperature}>fitted it on the validation set</a> by minimising negative log-likelihood and got <em>T</em> = <Claim id="cf.temperature" />.
+    v2 gets its own temperature the same way, and its calibration error on ISIC 2018 is <Claim id="cf2.v2.ece" />.
   </p>
   <TemperatureDemo />
-  <p>
-    On the test set the fitted value is very slightly worse on expected calibration error than an older hand-picked T = 2.5, and better on
-    log-likelihood. I kept the fitted one because it was chosen by a rule on data the test set never saw.
-  </p>
 
   <h2 id="latency">Latency</h2>
   <p>
-    I profiled inference phase by phase. The backward pass for Grad-CAM dominated each request, so I put explanations behind an
-    opt-in flag. When no explanation is needed, local latency drops from <Claim id="cf.latency.explain" /> to <Claim id="cf.latency.fast" /> per request. These are local measurements on one CPU worker, not production numbers.
+    I profiled v1 inference phase by phase. The backward pass for Grad-CAM dominated each request, so explanations are opt-in. Without
+    one, local latency drops from <Claim id="cf.latency.explain" /> to <Claim id="cf.latency.fast" /> per request, on one CPU worker. Those are local numbers, not production ones.
   </p>
 
-  <h2 id="limits">Limits</h2>
+  <h2 id="limits">What this doesn't show</h2>
   <ul>
+    <li><strong>v2 is not served yet.</strong> The API still runs v1. v2 needs its checkpoint hosted and the out-of-distribution guard refitted on its features.</li>
+    <li><strong>Training-seed variance is unmeasured.</strong> A second fusion run was interrupted. The intervals above cover test-set sampling, not the luck of a training run.</li>
+    <li><strong>Phone photos are untested.</strong> The guard was checked against everyday photos and synthetic patterns, not pictures of skin taken on a phone.</li>
+    <li><strong>Skin tone cannot be measured here.</strong> HAM10000 skews toward lighter skin and records no skin type.</li>
     <li>There is no always-on public demo.</li>
-    <li>One dataset from a research collection, so performance on other populations and cameras is unknown.</li>
-    <li>The training and validation accuracy figures in the project README come from a past run and cannot be reproduced from the repository. The README says so.</li>
   </ul>
 
-  <h2 id="reproduce">Reproduce the test numbers</h2>
+  <h2 id="reproduce">Reproduce</h2>
+  <p>Every v2 number is recomputed from logits committed to the project repository. No GPU and no images needed.</p>
+  <CodeBlock lang="bash" label="terminal" code={`git clone https://github.com/Avnish1505/cancer-fusion-ai
+cd cancer-fusion-ai
+python -m src.analyze_v2`} />
+  <p>The v1 test-set numbers on this page are recomputed by a script in this site's repository:</p>
   <CodeBlock lang="bash" label="in this site's repository" code={`pip install numpy
 python scripts/derive/cancer_fusion_metrics.py`} />
 </CaseStudy>

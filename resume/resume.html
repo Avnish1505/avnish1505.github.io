@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Avnish Singh - Resume</title>
+<meta name="author" content="Avnish Singh">
+<style>
+  @page { size: Letter; margin: 0.38in 0.45in 0.32in; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: 'Carlito', 'Calibri', 'Lato', sans-serif;
+    font-size: 9.2pt;
+    line-height: 1.22;
+    color: #111;
+  }
+  a { color: #1a4fa0; text-decoration: underline; text-underline-offset: 1.5pt; text-decoration-thickness: 0.5pt; }
+  h1 { font-size: 20pt; line-height: 1; margin: 0 0 3pt; letter-spacing: 0.2pt; }
+  .contact { margin: 0; font-size: 9pt; line-height: 1.32; }
+  .contact .sep { color: #888; padding: 0 3pt; }
+  .contact b { font-weight: 700; }
+  h2 {
+    font-size: 10.6pt; letter-spacing: 0.4pt; margin: 7.4pt 0 3pt; padding-bottom: 1.4pt;
+    border-bottom: 0.9pt solid #222; text-transform: uppercase;
+  }
+  p { margin: 0; }
+  .summary { text-align: left; }
+  .proj { margin-top: 4.2pt; }
+  .proj:first-of-type { margin-top: 0; }
+  .ph { display: flex; justify-content: space-between; align-items: baseline; gap: 12pt; }
+  .ph .t { font-weight: 700; }
+  .ph .y { font-weight: 700; white-space: nowrap; }
+  .meta { font-style: italic; color: #222; margin: 0.4pt 0 1pt; font-size: 8.6pt; }
+  .meta a, .r a, .contact a { white-space: nowrap; }
+  .meta .sep { font-style: normal; color: #888; padding: 0 3pt; }
+  .meta a { font-style: normal; }
+  ul { margin: 0; padding-left: 14pt; list-style: none; }
+  li { margin: 0.6pt 0; position: relative; }
+  li::before { content: "•"; position: absolute; left: -9.5pt; top: 0; }
+  .r b, li b { font-weight: 700; }
+  .rt { font-weight: 700; }
+  .rv { font-style: italic; }
+  .skills p { margin: 0.6pt 0; }
+  .skills b { font-weight: 700; }
+  .edu { display: flex; justify-content: space-between; gap: 12pt; }
+  .edu b { font-weight: 700; }
+  .nowrap { white-space: nowrap; }
+</style>
+</head>
+<body>
+  <h1>AVNISH SINGH</h1>
+  <p class="contact"><b>AI/ML Engineer</b><span class="sep">|</span>Lucknow, India<!--PHONE--><span class="sep">|</span><a href="mailto:avnishsingh150606@gmail.com">avnishsingh150606@gmail.com</a></p>
+  <p class="contact"><a href="https://github.com/Avnish1505">github.com/Avnish1505</a><span class="sep">|</span><a href="https://linkedin.com/in/avnish-singh-a94772309">linkedin.com/in/avnish-singh-a94772309</a><span class="sep">|</span><a href="https://avnish1505.github.io/">avnish1505.github.io</a><span class="sep">|</span>Eligible to work in India<span class="sep">|</span>Open to relocation</p>
+
+  <h2>Summary</h2>
+  <p class="summary">Final-year CS student (graduating May 2027) who builds ML and LLM systems with the checks that make them trustworthy: a coding-agent benchmark whose headline result went against my own thesis, a crisis-planning platform where a solver allocates and deterministic verifiers gate every plan, and a skin-lesion classifier rebuilt after external validation exposed a 7-point drop.</p>
+
+  <h2>Projects</h2>
+  <div class="proj">
+    <div class="ph"><span class="t">OmitBench: Benchmark for Silent Omissions in Coding-Agent Patches</span><span class="y">2026</span></div>
+    <p class="meta">Python, AST analysis, mutation testing, LLM-as-judge evaluation, bootstrap CIs, GitHub Actions<span class="sep">|</span><a href="https://github.com/Avnish1505/Omitbench">github.com/Avnish1505/Omitbench</a><span class="sep">|</span><a href="https://avnish1505.github.io/omitbench-engineering-blog/">engineering blog</a></p>
+    <ul>
+      <li>Built a labelled corpus by mutating merged commits from 8 Python libraries into three omission classes: 310 instances, 2,184 requirements per detector, 27.9% base rate, with a CI canary that fails if any detector sees the gold patch.</li>
+      <li>The headline result went against my thesis: the AST detector beats a no-AST grep baseline (ΔMCC +0.128) and a reasoning LLM judge (+0.111) but <b>loses to a mid-tier judge, −0.202</b> (paired bootstrap CI excludes zero). MCC was pre-committed: flag-everything scores F1 0.44, MCC 0.000.</li>
+      <li>Swapping oracle requirements for LLM-extracted ones (a $0.06 run) dropped MCC from +0.499 to −0.935, which put the bottleneck in extraction, not detection. A pre-registered test of TypeSafe’s Jev judge found strong ranking (AUROC 0.936) but failed calibration (ECE 0.323).</li>
+      <li>Shipped the AST detector as a GitHub Action PR gate (p95 26.5 ms, 155 tests in CI) because it meets the 0.80 precision bar at 2.6× lower FPR than the winning judge; a gate that cries wolf gets switched off. Two detectors that missed a pre-agreed bar were retired.</li>
+    </ul>
+  </div>
+
+  <div class="proj">
+    <div class="ph"><span class="t">AegisOps AI: Human-Approved Crisis Response Planning</span><span class="y">2026</span></div>
+    <p class="meta">Python, OR-Tools CP-SAT, OSRM, LLMs, FastAPI, PostGIS, OpenTelemetry, React, Docker<span class="sep">|</span><a href="https://github.com/Avnish1505/aegisops-ai">github.com/Avnish1505/aegisops-ai</a><span class="sep">|</span><a href="https://avnish1505.github.io/aegisops-ai-blog/">engineering blog</a></p>
+    <ul>
+      <li>Replaced LLM-generated resource allocation with a CP-SAT solver over OSRM road travel times on real Lucknow OpenStreetMap data (270 hospitals, 27 police and 3 fire stations); infeasible operator constraints are named, not silently dropped.</li>
+      <li>Every plan passes 19 pure-function checks before a person sees it, and fault injection <b>caught 650/650 faults</b> across 13 classes with 0 of 50 clean plans falsely blocked. The LLM only reads English, Hindi and Hinglish reports under a JSON schema; unquotable fields are dropped.</li>
+      <li>A proposer cannot approve their own plan (JWT roles), every decision lands in a hash-chained audit log and replays to the same verdict, and one OpenTelemetry trace spans each decision. 1,173 passing Python tests, plus Playwright and axe accessibility checks in CI.</li>
+    </ul>
+  </div>
+
+  <div class="proj">
+    <div class="ph"><span class="t">Cancer Fusion AI: Multimodal Skin Lesion Classifier</span><span class="y">2026</span></div>
+    <p class="meta">PyTorch, timm, EfficientNetV2-S, ResNet50, conformal prediction, Grad-CAM, FastAPI, React<span class="sep">|</span><a href="https://github.com/Avnish1505/cancer-fusion-ai">github.com/Avnish1505/cancer-fusion-ai</a><span class="sep">|</span><a href="https://avnish1505.github.io/Cancer-Fusion-AI-blog/">engineering blog</a></p>
+    <ul>
+      <li>v1 fused ResNet50 features with age, sex and lesion site on HAM10000 (10,015 images, 7 classes, lesion-level split): 0.712 test macro-F1, but balanced accuracy fell from 0.722 to 0.653 on the official ISIC 2018 external test set.</li>
+      <li>Rebuilt as v2 (EfficientNetV2-S at 384 px, colour constancy, sqrt class weights, EMA, 8-view TTA): <b>external balanced accuracy 0.782</b> (+0.129, paired CI [+0.088, +0.171]) with no external drop. Fusion beats image-only by +0.033, yet the form adds only +0.008 at inference.</li>
+      <li>Validation-fitted safety layer: malignant flag at 95% target sensitivity, conformal sets (91.5% coverage on ISIC 2018 at a 90% target), Mahalanobis OOD guard. v2 halves benign lesions flagged per cancer caught (1.72 to 0.86). Opt-in Grad-CAM cut CPU latency ~100 to ~31 ms.</li>
+    </ul>
+  </div>
+
+  <h2>Research</h2>
+  <p class="r"><span class="rt">Detecting Silent Implementation Integrity Failures in AI-Generated Code: A Static Analysis Approach</span><span class="sep" style="color:#888;padding:0 3pt">|</span><span class="rv">preprint, arXiv pending</span><span class="sep" style="color:#888;padding:0 3pt">|</span><a href="https://avnish1505.github.io/iia-preprint/">project page</a></p>
+  <ul>
+    <li>Deterministic AST analyzer for unwired safety logic: <b>MCC 0.389</b> (precision 0.556, recall 0.833) on a 15-scenario benchmark, against a string-presence baseline whose MCC is undefined because it predicts one class. All five errors are reported against limitations written before the run.</li>
+  </ul>
+  <p class="r" style="margin-top:2pt"><span class="rt">Emergence of Artificial Intelligence in Law and Legal Technology</span><span class="sep" style="color:#888;padding:0 3pt">|</span><span class="rv">ADG 2026 International Conference</span><span class="sep" style="color:#888;padding:0 3pt">|</span><a href="https://avnish1505.github.io/research-paper.pdf">paper</a></p>
+  <ul>
+    <li>Co-authored a peer-reviewed comparison of AI governance in the EU, US and India; wrote the comparative analysis and technical sections.</li>
+  </ul>
+
+  <h2>Technical Skills</h2>
+  <div class="skills">
+    <p><b>LLM / Agents:</b> LLM evaluation, LLM-as-judge, eval harnesses, structured output, grounded extraction, prompt engineering, AI coding agents</p>
+    <p><b>ML:</b> PyTorch, timm, scikit-learn, XGBoost, TensorFlow, computer vision, transfer learning, calibration, conformal prediction, OOD detection</p>
+    <p><b>Evaluation:</b> MCC, AUROC, ECE, bootstrap CIs, pre-registered experiments, ablations, leakage guards, mutation testing, AST analysis</p>
+    <p><b>Engineering:</b> Python, SQL, FastAPI, PostgreSQL/PostGIS, SQLAlchemy, Docker, GitHub Actions, pytest, React, TypeScript, Playwright, Linux, Git, AWS</p>
+  </div>
+
+  <h2>Education</h2>
+  <div class="edu"><span><b>B.Tech, Computer Science and Engineering</b><span style="color:#888;padding:0 3pt">|</span>Babu Banarasi Das University, Lucknow<span style="color:#888;padding:0 3pt">|</span>CGPA 7.39 / 10</span><b class="nowrap">2023 – 2027 (expected May 2027)</b></div>
+
+  <h2>Additional</h2>
+  <ul>
+    <li>160 LeetCode problems solved (arrays, strings, hash tables, dynamic programming, DFS)<span style="color:#888;padding:0 3pt">|</span><a href="https://leetcode.com/u/Avnish1506">leetcode.com/u/Avnish1506</a></li>
+    <li>Shortlisted for Anthropic’s Claude for Open Source Program on code quality.</li>
+    <li>First place, college chess tournament 2025 (Chess.com rapid 1720).</li>
+  </ul>
+</body>
+</html>

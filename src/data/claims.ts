@@ -26,6 +26,8 @@ export const commits = {
   aegisopsSolver: '5e81f3a7440495df397cd81ece468a9f92cf821a',
   cancerFusionCal: 'e97ee49862249cad6e13d9157d79cf862970db1f',
   agentgrade: '03ea9101e42ae8be3d0632258c366a403d80ee77',
+  // Pinned on 1 Oct 2026: Cancer Fusion v2 results merged.
+  cancerFusionV2: '28ab3a931b67a927352a47e9fc21cf0f9a39dc0d',
 } as const;
 
 type LineSource = { kind: 'line'; repo: string; sha: string; path: string; line: number; match: string };
@@ -53,6 +55,7 @@ const CF = (n: number, match: string) => line('cancer-fusion-ai', commits.cancer
 const OB7 = (n: number, match: string) => line('Omitbench', commits.omitbenchB7, 'README.md', n, match);
 const AES = (path: string, n: number, match: string) => line('aegisops-ai', commits.aegisopsSolver, path, n, match);
 const CFC = (n: number, match: string) => line('cancer-fusion-ai', commits.cancerFusionCal, 'README.md', n, match);
+const CF2 = (n: number, match: string) => line('cancer-fusion-ai', commits.cancerFusionV2, 'README.md', n, match);
 const AG = (n: number, match: string) => line('agentgrade', commits.agentgrade, 'README.md', n, match);
 
 const CF_DERIVED = (derivation: string, split: 'val' | 'test'): DerivedSource => ({
@@ -145,6 +148,11 @@ export const claims = {
   'ae.fi.faults': { value: '650/650', label: 'injected faults caught by the verifier', source: AES('reports/fault_injection.md', 8, '**650/650**') },
   'ae.fi.falseBlocks': { value: '0/50', label: 'clean solver plans falsely blocked', source: AES('reports/fault_injection.md', 9, '**0/50**') },
   'ae.verifier.checks': { value: '19', label: 'deterministic checks every plan goes through', source: AES('docs/STATUS.md', 13, 'goes through 19 deterministic checks') },
+  'ae.tests.now': {
+    value: '1,173',
+    label: 'AegisOps tests passing, 3 skipped (pytest, run at this commit on 1 Oct 2026)',
+    source: { kind: 'file', repo: 'aegisops-ai', sha: commits.aegisopsSolver, path: 'tests', tree: true },
+  },
   'ae.unmetPenalty': { value: '10_000', label: 'penalty in minutes per unit of unmet demand', source: AES('aegisops/planning/objective.py', 20, 'UNMET_PENALTY_MINUTES = 10_000.0') },
 
   // ── AgentGrade ───────────────────────────────────────────────────────────
@@ -159,6 +167,39 @@ export const claims = {
   'cf.latency.fast': { value: '~31 ms', label: 'local /predict latency with explain=false', source: CF(237, '**~31ms**') },
   'cf.temperature': { value: '2.1235', label: 'temperature fitted on the validation set by NLL minimisation', source: CFC(240, 'T=2.1235 (fitted on validation via NLL minimization, current)') },
   'cf.ece.before': { value: '0.1217', label: 'test ECE before temperature scaling (T = 1)', source: CFC(238, '| T=1.0 (uncalibrated) | 0.1217') },
+  // v2 and the external test set (ISIC 2018 Task 3), from the README at the v2 commit
+  'cf2.v1.homeBA': { value: '0.722', label: 'v1 balanced accuracy on its own test split (n=1,543)', source: CF2(244, '| 0.7221 [0.682, 0.764] |') },
+  'cf2.v1.awayBA': { value: '0.653', label: 'v1 balanced accuracy on the ISIC 2018 test set (n=1,511)', source: CF2(244, '| 0.6531 [0.609, 0.695] |') },
+  'cf2.best2018': { value: '0.885', label: 'balanced accuracy of the best ISIC 2018 Task 3 submission', source: CF2(250, 'reached 0.885 balanced accuracy') },
+  'cf2.offsets.median': { value: '+0.013', label: 'median ISIC 2018 gain from per-class decision offsets, over 20 refits', source: CF2(252, 'median gain of only +0.013') },
+  'cf2.offsets.first': { value: '0.704', label: 'ISIC 2018 balanced accuracy after one fit of the offsets', source: CF2(252, 'from 0.653 to 0.704 on one fit') },
+  'cf2.v2.awayBA': { value: '0.782', label: 'v2 fusion balanced accuracy on ISIC 2018', source: CF2(291, '| 0.782 (+0.129 [+0.088, +0.171]) |') },
+  'cf2.v2.delta': { value: '+0.129', label: 'paired change in ISIC 2018 balanced accuracy, v2 − v1', source: CF2(291, '| 0.782 (+0.129 [+0.088, +0.171]) |') },
+  'cf2.v2.deltaCi': { value: '[+0.088, +0.171]', label: '95% paired bootstrap CI of v2 − v1', source: CF2(291, '(+0.129 [+0.088, +0.171])') },
+  'cf2.imgOnly.awayBA': { value: '0.750', label: 'v2 image-only ablation, ISIC 2018 balanced accuracy', source: CF2(291, '| 0.750 (+0.097 [+0.057, +0.138]) |') },
+  'cf2.v2.homeBA': { value: '0.762', label: 'v2 fusion balanced accuracy on the internal test split', source: CF2(296, '| 0.762 (+0.040 [+0.006, +0.075]) |') },
+  'cf2.v1.melAUC': { value: '0.898', label: 'v1 melanoma AUC on ISIC 2018 (plain softmax)', source: CF2(293, '| ISIC 2018 melanoma AUC | 0.898 |') },
+  'cf2.v2.melAUC': { value: '0.939', label: 'v2 melanoma AUC on ISIC 2018', source: CF2(293, '| 0.939 (+0.041 [+0.017, +0.066]) |') },
+  'cf2.v1.malAUC': { value: '0.898', label: 'v1 malignant-vs-benign AUC on ISIC 2018 (plain softmax)', source: CF2(294, '| ISIC 2018 malignant AUC | 0.898 |') },
+  'cf2.v2.malAUC': { value: '0.954', label: 'v2 malignant-vs-benign AUC on ISIC 2018', source: CF2(294, '| 0.954 (+0.055 [+0.037, +0.074]) |') },
+  'cf2.melRecall.deltaCi': { value: '[−0.012, +0.141]', label: '95% CI of the v2 − v1 change in ISIC 2018 melanoma recall', source: CF2(295, '(+0.064 [−0.012, +0.141])') },
+  'cf2.fusion.vsImg': { value: '+0.033', label: 'paired ISIC 2018 balanced-accuracy gain, fusion over image-only', source: CF2(308, '+0.033 [+0.003, +0.061] balanced accuracy') },
+  'cf2.fusion.vsImgCi': { value: '[+0.003, +0.061]', label: '95% CI of fusion − image-only', source: CF2(308, '+0.033 [+0.003, +0.061] balanced accuracy') },
+  'cf2.fusion.noForm': { value: '0.774', label: 'fusion model on ISIC 2018 with all metadata withheld', source: CF2(308, 'still scores 0.774') },
+  'cf2.fusion.form': { value: '+0.008', label: 'what the form adds at inference, ISIC 2018 balanced accuracy', source: CF2(308, 'adds +0.008 [−0.003, +0.019] balanced accuracy') },
+  'cf2.fusion.formCi': { value: '[−0.003, +0.019]', label: '95% CI of what the form adds at inference', source: CF2(308, 'adds +0.008 [−0.003, +0.019] balanced accuracy') },
+  'cf2.v1.spec': { value: '0.578', label: 'v1 malignant-flag specificity on ISIC 2018', source: CF2(315, '| 0.578 [0.550, 0.606] |') },
+  'cf2.v2.spec': { value: '0.793', label: 'v2 malignant-flag specificity on ISIC 2018', source: CF2(315, '| 0.793 [0.770, 0.815] |') },
+  'cf2.v1.sens': { value: '0.961', label: 'v1 malignant-flag sensitivity on ISIC 2018 (set for 0.95 on validation)', source: CF2(314, '| 0.961 [0.939, 0.981] |') },
+  'cf2.v2.sens': { value: '0.941', label: 'v2 malignant-flag sensitivity on ISIC 2018 (set for 0.95 on validation)', source: CF2(314, '| 0.941 [0.915, 0.966] |') },
+  'cf2.v1.fpPerTp': { value: '1.72', label: 'benign lesions flagged per malignant lesion caught, v1', source: CF2(316, '| 1.72 | 0.86 |') },
+  'cf2.v2.fpPerTp': { value: '0.86', label: 'benign lesions flagged per malignant lesion caught, v2', source: CF2(316, '| 1.72 | 0.86 |') },
+  'cf2.v2.coverage': { value: '0.915', label: 'v2 conformal coverage on ISIC 2018 at a 0.90 target', source: CF2(317, '| 0.915 / 1.64 |') },
+  'cf2.v2.setSize': { value: '1.64', label: 'v2 mean conformal set size on ISIC 2018', source: CF2(317, '| 0.915 / 1.64 |') },
+  'cf2.v1.setSize': { value: '1.86', label: 'v1 mean conformal set size on ISIC 2018', source: CF2(317, '| 0.905 / 1.86 |') },
+  'cf2.v2.ece': { value: '0.029', label: 'v2 expected calibration error on ISIC 2018', source: CF2(318, '| ECE | 0.042 | 0.029 |') },
+  'cf2.v1.homeMelAUC': { value: '0.912', label: 'v1 melanoma AUC on the internal test split (plain softmax)', source: CF2(297, '| Internal test melanoma AUC | 0.912 |') },
+  'cf2.v2.homeMelAUC': { value: '0.958', label: 'v2 melanoma AUC on the internal test split', source: CF2(297, '| 0.958 (+0.047 [+0.029, +0.063]) |') },
   'cf.ece.after': { value: '0.0297', label: 'test ECE at the fitted temperature', source: CFC(240, 'current)** | 0.0297') },
 
   'cf.test.n': { value: '1,543', label: 'held-out test images', source: CF_DERIVED('Row count of the committed test labels.', 'test') },

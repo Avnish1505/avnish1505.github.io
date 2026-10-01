@@ -1,0 +1,336 @@
+---
+import Claim from './Claim.astro';
+import { claims, type ClaimId } from '../data/claims';
+
+interface Props {
+  /** Show only the balanced-accuracy panel, with no switch. */
+  compact?: boolean;
+}
+
+type Row = { name: string; note: string; home: ClaimId; away: ClaimId };
+type Panel = {
+  key: string;
+  label: string;
+  min: number;
+  max: number;
+  ticks: number[];
+  rows: Row[];
+  ref?: { at: ClaimId; label: string };
+  caption: string;
+};
+
+const panels: Panel[] = [
+  {
+    key: 'ba',
+    label: 'Balanced accuracy',
+    min: 0.6,
+    max: 0.9,
+    ticks: [0.6, 0.7, 0.8, 0.9],
+    rows: [
+      { name: 'v1', note: 'ResNet50', home: 'cf2.v1.homeBA', away: 'cf2.v1.awayBA' },
+      { name: 'v2', note: 'EfficientNetV2-S', home: 'cf2.v2.homeBA', away: 'cf2.v2.awayBA' },
+    ],
+    ref: { at: 'cf2.best2018', label: 'best 2018 entry' },
+    caption: 'Balanced accuracy averages the recall of each class, so the common mole class cannot carry the score. ISIC 2018 was ranked on it.',
+  },
+  {
+    key: 'auc',
+    label: 'Melanoma AUC',
+    min: 0.85,
+    max: 1,
+    ticks: [0.85, 0.9, 0.95, 1],
+    rows: [
+      { name: 'v1', note: 'ResNet50', home: 'cf2.v1.homeMelAUC', away: 'cf2.v1.melAUC' },
+      { name: 'v2', note: 'EfficientNetV2-S', home: 'cf2.v2.homeMelAUC', away: 'cf2.v2.melAUC' },
+    ],
+    caption: 'AUC ignores the decision threshold and asks only whether a melanoma is ranked above everything else. Plain softmax for both models.',
+  },
+];
+
+const { compact = false } = Astro.props;
+const shown = compact ? panels.slice(0, 1) : panels;
+const v = (id: ClaimId) => Number(claims[id].value);
+---
+<figure class:list={['fig', 'ha', { compact }]} id={compact ? undefined : 'home-away'}>
+  <p class="fig-title">At home, then away</p>
+  {!compact && (
+    <div class="switch" role="tablist" aria-label="Metric">
+      {shown.map((p, i) => (
+        <button type="button" role="tab" class="btn" id={`ha-tab-${p.key}`} aria-controls={`ha-panel-${p.key}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>{p.label}</button>
+      ))}
+    </div>
+  )}
+  {shown.map((p) => {
+    const pct = (x: number) => `${((Math.max(p.min, Math.min(p.max, x)) - p.min) / (p.max - p.min)) * 100}%`;
+    return (
+      <section class="panel" role={compact ? undefined : 'tabpanel'} id={`ha-panel-${p.key}`} aria-labelledby={compact ? undefined : `ha-tab-${p.key}`}>
+        <h3 class="panel-label">{p.label}</h3>
+        <div class="legend small" aria-hidden="true">
+          <span><i class="home"></i>own test split, n = 1,543</span>
+          <span><i class="away"></i>ISIC 2018 test set, n = 1,511</span>
+        </div>
+        <div class="plot">
+          <div class="row axis-row" aria-hidden="true">
+            <span></span>
+            <span class="track axis">
+              {p.ticks.map((t) => <span class="tick" style={`left:${pct(t)}`}>{t.toFixed(2)}</span>)}
+            </span>
+            <span></span>
+          </div>
+          {p.rows.map((r) => {
+            const h = v(r.home), a = v(r.away);
+            const drop = a < h;
+            const lo = Math.min(h, a), hi = Math.max(h, a);
+            return (
+              <div class:list={['row', drop ? 'drop' : 'held']}>
+                <span class="lbl"><b>{r.name}</b><span class="note">{r.note}</span></span>
+                <span class="track">
+                  {p.ticks.map((t) => <span class="grid" style={`left:${pct(t)}`} />)}
+                  {p.ref && <span class="ref" style={`left:${pct(v(p.ref.at))}`} />}
+                  <span class="seg" style={`left:${pct(lo)};width:calc(${pct(hi)} - ${pct(lo)})`} />
+                  <span class="dot home" style={`left:${pct(h)}`} />
+                  <span class="dot away" style={`left:${pct(a)}`} />
+                  <span class="delta" style={`left:calc(${pct(hi)} + 12px)`} aria-hidden="true">{drop ? '−' : '+'}{Math.abs(a - h).toFixed(3)}</span>
+                </span>
+                <span class="vals"><Claim id={r.home} /><span aria-hidden="true">→</span><span class="sr-only">at home, then away</span><Claim id={r.away} /></span>
+              </div>
+            );
+          })}
+          {p.ref && (
+            <div class="row ref-row" aria-hidden="true">
+              <span></span>
+              <span class="track"><span class="ref-label" style={`left:${pct(v(p.ref.at))}`}>{p.ref.label}</span></span>
+              <span></span>
+            </div>
+          )}
+        </div>
+        <p class="caption">{p.caption}</p>
+      </section>
+    );
+  })}
+  <figcaption>
+    v1 lost seven points when it left its own dataset. v2 does not lose anything, and it closes the gap to the best 2018 entry,
+    <Claim id="cf2.best2018" />, from about 23 points to about 10 with one model and no extra data.
+  </figcaption>
+</figure>
+
+<style>
+  .switch {
+    display: none;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 0.8rem;
+  }
+  .ha.js .switch {
+    display: flex;
+  }
+  .panel + .panel {
+    margin-top: 1.6rem;
+  }
+  .ha.js .panel + .panel {
+    margin-top: 0;
+  }
+  .panel-label {
+    font-size: 0.95rem;
+    margin-bottom: 0.3rem;
+  }
+  .ha.js .panel-label,
+  .ha.compact .panel-label {
+    display: none;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    color: var(--text-dim);
+    margin-bottom: 0.4rem;
+  }
+  .legend i {
+    display: inline-block;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: -1px;
+  }
+  .legend i.home {
+    border: 2px solid var(--text-dim);
+  }
+  .legend i.away {
+    background: var(--text);
+  }
+  .plot {
+    display: grid;
+    gap: 0.4rem;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr 8.2rem;
+    align-items: center;
+    gap: 0.9rem;
+    font-size: 0.9rem;
+  }
+  .lbl {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  .lbl b {
+    font-weight: 700;
+  }
+  .note {
+    color: var(--text-faint);
+    font-size: 0.76rem;
+  }
+  .track {
+    position: relative;
+    height: 2.2rem;
+  }
+  .axis {
+    height: 1rem;
+    font-size: 0.74rem;
+    color: var(--text-faint);
+  }
+  .tick {
+    position: absolute;
+    transform: translateX(-50%);
+    font-variant-numeric: tabular-nums;
+  }
+  .grid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--line);
+  }
+  .ref {
+    position: absolute;
+    top: -6px;
+    bottom: -6px;
+    border-left: 1.5px dashed var(--yellow);
+    opacity: 0.8;
+  }
+  .ref-row .track {
+    height: 1.3rem;
+  }
+  .ref-label {
+    position: absolute;
+    transform: translateX(-100%);
+    padding-right: 6px;
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1;
+    color: var(--yellow);
+    white-space: nowrap;
+  }
+  .seg {
+    position: absolute;
+    top: 50%;
+    height: 4px;
+    transform: translateY(-50%);
+    border-radius: 2px;
+  }
+  .drop .seg {
+    background: var(--rose);
+  }
+  .held .seg {
+    background: var(--mint);
+  }
+  .dot {
+    position: absolute;
+    top: 50%;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .dot.home {
+    background: var(--bg-raised);
+    border: 2px solid var(--text-dim);
+  }
+  .dot.away {
+    background: var(--text);
+    border: 2px solid var(--text);
+  }
+  .delta {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-55%) rotate(-3deg);
+    font-family: var(--hand);
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .drop .delta {
+    color: var(--rose);
+  }
+  .held .delta {
+    color: var(--mint);
+  }
+  .vals {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: baseline;
+    color: var(--text-faint);
+  }
+  .vals :global(.claim) {
+    color: var(--text);
+  }
+  .ha.compact .caption {
+    display: none;
+  }
+  .caption {
+    margin: 0.7rem 0 0;
+    font-size: 0.86rem;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+  @media (max-width: 34rem) {
+    .row {
+      grid-template-columns: 1fr;
+      gap: 0.1rem;
+    }
+    .row:not(.axis-row):not(.ref-row) {
+      grid-template-columns: 1fr auto;
+      margin-bottom: 0.4rem;
+    }
+    .row:not(.axis-row):not(.ref-row) .track {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+    .lbl {
+      flex-direction: row;
+      gap: 0.4rem;
+      align-items: baseline;
+    }
+    .axis-row > span:empty,
+    .ref-row > span:empty {
+      display: none;
+    }
+  }
+</style>
+
+<script>
+  const root = document.getElementById('home-away');
+  if (root) {
+    root.classList.add('js');
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+    const select = (i: number, focus = false) => {
+      tabs.forEach((t, j) => { t.setAttribute('aria-selected', String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+      panels.forEach((p, j) => (p.hidden = i !== j));
+      if (focus) tabs[i].focus();
+    };
+    tabs.forEach((t, i) => {
+      t.addEventListener('click', () => select(i));
+      t.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight') select((i + 1) % tabs.length, true);
+        if (e.key === 'ArrowLeft') select((i - 1 + tabs.length) % tabs.length, true);
+      });
+    });
+    select(0);
+  }
+</script>

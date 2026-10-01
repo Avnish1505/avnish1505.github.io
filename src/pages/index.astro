@@ -8,9 +8,10 @@ import ConfusionGrid from '../components/ConfusionGrid.astro';
 import FaultStrip from '../components/FaultStrip.astro';
 import MccPlayground from '../components/MccPlayground.astro';
 import Repl from '../components/Repl.astro';
+import HomeAway from '../components/HomeAway.astro';
 import photo from '../assets/avnish.jpg';
 import { site } from '../site.config';
-import { papers, posts } from '../data/content';
+import { papers, posts, post } from '../data/content';
 
 const origin = Astro.site ?? new URL('http://localhost:4321');
 const avatar = await getImage({ src: photo, width: 480, format: 'jpg' });
@@ -25,7 +26,7 @@ const jsonLd = {
   description: site.description,
   affiliation: { '@type': 'CollegeOrUniversity', name: site.school },
   address: { '@type': 'PostalAddress', addressLocality: 'Lucknow', addressCountry: 'IN' },
-  knowsAbout: ['LLM evaluation', 'Benchmarks', 'Static analysis', 'Verification of AI-generated code', 'Constraint solving'],
+  knowsAbout: ['LLM evaluation', 'Benchmarks', 'Static analysis', 'Verification of AI-generated code', 'Constraint solving', 'Medical image classification', 'Conformal prediction'],
   sameAs: [site.github, site.linkedin],
 };
 ---
@@ -68,7 +69,7 @@ const jsonLd = {
 
   <section class="section" aria-labelledby="now">
     <h2 id="now">Now</h2>
-    <p class="section-sub">September 2026</p>
+    <p class="section-sub">September and October 2026</p>
     <ol class="log">
       <li>
         <span class="when hand">19 Sep</span>
@@ -87,7 +88,7 @@ const jsonLd = {
           <p class="log-title"><a href="/work/aegisops/">AegisOps</a>: the model no longer allocates</p>
           <p>
             A CP-SAT solver now plans on road travel times, and the language model only reads reports and drafts text.
-            The verifier caught <Claim id="ae.fi.faults" /> injected faults. There are no live-model results yet.
+            The verifier caught <Claim id="ae.fi.faults" /> injected faults, and <Claim id="ae.tests.now" /> tests pass. There are no live-model results yet.
           </p>
         </div>
       </li>
@@ -98,6 +99,17 @@ const jsonLd = {
           <p>
             A probabilistic judge ranked omissions well, with AUROC <Claim id="ob.b7.auroc" />, and was not calibrated: ECE <Claim id="ob.b7.ece" /> against
             a bar of <Claim id="ob.b7.eceBar" /> set before the run. Against the mid-tier LLM judge its paired MCC difference was <Claim id="ob.b7.delta" />.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="when hand">30 Sep</span>
+        <div>
+          <p class="log-title"><a href="/work/cancer-fusion/">Cancer Fusion v2</a>: the classifier that failed away from home, rebuilt</p>
+          <p>
+            On the official ISIC 2018 test set, balanced accuracy went from <Claim id="cf2.v1.awayBA" /> to <Claim id="cf2.v2.awayBA" />, and the
+            malignant flag now raises <Claim id="cf2.v2.fpPerTp" /> false alarms per cancer caught instead of <Claim id="cf2.v1.fpPerTp" />.
+            The <a href={post('cancerFusion').href}>write-up</a> includes the fix that didn't work.
           </p>
         </div>
       </li>
@@ -130,7 +142,7 @@ const jsonLd = {
       <ul class="links">
         <li><a href="/work/omitbench/">Case study</a></li>
         <li><a href="https://github.com/Avnish1505/Omitbench">Code</a></li>
-        <li><a href={posts[0].href}>Write-up</a></li>
+        <li><a href={post('omitbench').href}>Write-up</a></li>
       </ul>
     </article>
 
@@ -150,7 +162,7 @@ const jsonLd = {
       <ul class="links">
         <li><a href="/work/aegisops/">Case study</a></li>
         <li><a href="https://github.com/Avnish1505/aegisops-ai">Code</a></li>
-        <li><a href={posts[1].href}>Write-up</a></li>
+        <li><a href={post('aegisops').href}>Write-up</a></li>
       </ul>
     </article>
 
@@ -176,20 +188,23 @@ const jsonLd = {
     </article>
 
     <article class="work has-notes">
-      <span class="margin-note">A triage filter, not a diagnosis.</span>
+      <span class="margin-note rose">Lost seven points away from home. Rebuilt.</span>
       <header>
         <h3><a href="/work/cancer-fusion/">Cancer Fusion AI</a></h3>
         <span class="yr hand">2026</span>
       </header>
-      <p class="lede">A skin lesion classifier that combines dermoscopy images with patient metadata.</p>
+      <p class="lede">A skin-lesion classifier that failed on someone else's test set, and the rebuild that fixed it.</p>
       <p>
-        Macro-F1 <Claim id="cf.test.macroF1" /> on <Claim id="cf.test.n" /> held-out test images, and <Claim id="cf.valMacroF1" /> on the
-        validation set used to pick the checkpoint. Melanoma recall is <Claim id="cf.test.melRecall" /> at precision <Claim id="cf.test.melPrecision" />.
-        The bug I learned the most from was silent: a stale checkpoint loaded without an error, and the model predicted one class for every image.
+        v1 scored balanced accuracy <Claim id="cf2.v1.homeBA" /> on its own test split and <Claim id="cf2.v1.awayBA" /> on the official ISIC 2018 test set.
+        A threshold trick looked like a fix until I refitted it twenty times. v2 rebuilt the classifier and kept the safety layer:
+        <Claim id="cf2.v2.awayBA" /> away from home, a paired gain of <Claim id="cf2.v2.delta" />. The ablation says the patient metadata at
+        inference adds only <Claim id="cf2.fusion.form" />, and I report that too.
       </p>
+      <HomeAway compact />
       <ul class="links">
         <li><a href="/work/cancer-fusion/">Case study</a></li>
         <li><a href="https://github.com/Avnish1505/cancer-fusion-ai">Code</a></li>
+        <li><a href={post('cancerFusion').href}>Write-up</a></li>
       </ul>
     </article>
   </section>
